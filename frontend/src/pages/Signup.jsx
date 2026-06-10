@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,7 +28,9 @@ const Signup = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
-        navigate('/login');
+        localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('username', data.user.username);
+        navigate('/home');
       } else {
         setError(data.message || 'Signup failed');
       }
@@ -130,16 +133,25 @@ const Signup = () => {
 
             <motion.div className="space-y-3" variants={itemVariants}>
               <label htmlFor="passwordSignupInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">Password</label>
-              <input
-                id="passwordSignupInput"
-                type="password"
-                required
-                className="custom-input w-full px-5 py-4 rounded-none"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  id="passwordSignupInput"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="custom-input w-full px-5 py-4 pr-12 rounded-none"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+                <div 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white cursor-pointer transition-colors"
+                  onMouseEnter={() => setShowPassword(true)}
+                  onMouseLeave={() => setShowPassword(false)}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </div>
+              </div>
             </motion.div>
 
             <motion.div variants={itemVariants} className="pt-4">

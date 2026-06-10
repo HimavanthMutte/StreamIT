@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, PlayCircle, User, LogOut, Crown, X } from 'lucide-react';
+import { ArrowLeft, Send, User, LogOut, Crown, X } from 'lucide-react';
 import io from 'socket.io-client';
+import CustomVideoPlayer from '../components/VideoPlayer';
 
 const MessageList = memo(({ messages, userId }) => {
   return (
     <>
       {messages.length === 0 && (
-        <p className="text-center text-[var(--color-text-muted)] font-medium mt-10 uppercase text-xs tracking-wider">No messages yet. Say hello!</p>
+        <p className="text-center text-[var(--color-text-muted)] font-medium mt-10 uppercase text-xs tracking-wider">No messages</p>
       )}
       {messages.map((msg, index) => {
         const isMe = msg.sender?._id === userId || msg.sender === userId;
@@ -185,10 +186,11 @@ const Room = () => {
         <div className="absolute top-0 left-0 w-full p-4 lg:relative lg:p-0 flex items-center justify-between mb-0 lg:mb-6 z-30 pointer-events-auto">
           <button
             onClick={() => navigate('/home')}
-            className="flex items-center gap-2 text-[var(--color-text-muted)] font-bold hover:text-white transition-colors cursor-pointer"
+            className="flex lg:hidden items-center gap-2 text-[var(--color-text-muted)] font-bold hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} /> Home
           </button>
+          <div className="hidden lg:block" />
           <button
             onClick={handleLeaveRoom}
             className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold uppercase text-sm hover:bg-[var(--color-accent)] hover:text-white transition-all cursor-pointer"
@@ -199,10 +201,8 @@ const Room = () => {
 
         <h2 className="hidden lg:block text-3xl font-black uppercase mb-4 tracking-tighter z-30">ROOM: {roomCode}</h2>
 
-        <div className="flex-1 bg-black lg:border-2 border-[var(--color-surface-border)] relative flex items-center justify-center group overflow-hidden w-full h-full">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10" />
-          <PlayCircle size={80} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-all scale-95 group-hover:scale-110 cursor-pointer z-20" />
-          <p className="absolute bottom-6 left-6 font-bold text-xl z-20">Awaiting Video Stream...</p>
+        <div className="flex-1 bg-black lg:border-2 border-[var(--color-surface-border)] overflow-hidden w-full h-full">
+          <CustomVideoPlayer />
         </div>
       </div>
 

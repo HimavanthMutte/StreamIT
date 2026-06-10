@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -15,21 +14,18 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     try {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.user.id);
-        localStorage.setItem('username', data.user.username);
-        navigate('/home');
       } else {
         setError(data.message || 'Login failed');
       }
@@ -42,11 +38,11 @@ const Login = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       transition: {
         duration: 0.8,
-        ease: [0.16, 1, 0.3, 1], // ease-out-expo
+        ease: [0.16, 1, 0.3, 1],
         staggerChildren: 0.1,
       }
     },
@@ -55,8 +51,8 @@ const Login = () => {
 
   const itemVariants = {
     hidden: { opacity: 0, x: -30 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       x: 0,
       transition: {
         duration: 0.6,
@@ -66,39 +62,36 @@ const Login = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="flex min-h-screen w-full flex-col lg:flex-row"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
     >
-      {/* Left side: Hero Branding */}
       <div className="flex-1 flex flex-col justify-center p-8 lg:p-24 bg-black/40 border-b lg:border-b-0 lg:border-r border-[var(--color-surface-border)] relative overflow-hidden">
-        {/* Abstract structural shape */}
-        <motion.div 
+        <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
           className="absolute top-0 left-0 w-full h-4 bg-[var(--color-accent)] origin-left"
         />
-        
+
         <motion.h1 variants={itemVariants} className="text-hero font-black text-[var(--color-accent)] uppercase mb-6 tracking-tighter">
-          STREAM<br/>IT.
+          STREAM<br />IT.
         </motion.h1>
         <motion.p variants={itemVariants} className="text-subhero text-[var(--color-text-muted)] max-w-lg leading-tight">
-          The definitive cinematic experience. <br/> Sign in to continue watching.
+          The definitive cinematic experience. <br /> Sign in to continue watching.
         </motion.p>
       </div>
 
-      {/* Right side: Form Container */}
       <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
         <motion.div className="w-full max-w-md" variants={itemVariants}>
-          
+
           <h2 className="text-3xl font-bold tracking-tight mb-8">Welcome Back</h2>
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               className="bg-red-950/50 border-l-4 border-[var(--color-accent)] text-red-200 px-4 py-4 mb-8 font-medium"
@@ -125,26 +118,18 @@ const Login = () => {
             <motion.div className="space-y-3" variants={itemVariants}>
               <div className="flex justify-between items-center">
                 <label htmlFor="passwordInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Password</label>
+                <a href="#" className="text-xs font-bold text-[var(--color-accent)] hover:text-white transition-colors uppercase tracking-wider">Forgot?</a>
               </div>
-              <div className="relative">
-                <input
-                  id="passwordInput"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="custom-input w-full px-5 py-4 pr-12 rounded-none"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-                <div 
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white cursor-pointer transition-colors"
-                  onMouseEnter={() => setShowPassword(true)}
-                  onMouseLeave={() => setShowPassword(false)}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </div>
-              </div>
+              <input
+                id="passwordInput"
+                type="password"
+                required
+                className="custom-input w-full px-5 py-4 rounded-none"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
             </motion.div>
 
             <motion.div variants={itemVariants} className="pt-4">

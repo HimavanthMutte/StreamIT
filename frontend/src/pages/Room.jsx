@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, User, LogOut, Crown, X } from 'lucide-react';
+import { ArrowLeft, Send, User, LogOut, Crown, X, Camera, CameraOff, Mic, MicOff } from 'lucide-react';
 import io from 'socket.io-client';
 import CustomVideoPlayer from '../components/VideoPlayer';
 
@@ -37,8 +37,14 @@ const Room = () => {
   const [offlineUsers, setOfflineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
   const [hostUsername, setHostUsername] = useState('');
+  
+  const [chatWidth, setChatWidth] = useState(320);
+  const [camOn, setCamOn] = useState(false);
+  const [micOn, setMicOn] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const isDraggingRef = useRef(false);
 
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
@@ -175,6 +181,26 @@ const Room = () => {
     }
   };
 
+  const handleMouseDown = (e) => {
+    isDraggingRef.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDraggingRef.current) return;
+    const newWidth = document.body.clientWidth - e.clientX;
+    if (newWidth >= 350 && newWidth <= document.body.clientWidth * 0.5) {
+      setChatWidth(newWidth);
+    }
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
   const othersTyping = typingUsers.filter(u => u !== username);
   const hostUser = participants.find(p => p === hostUsername);
   const otherParticipants = participants.filter(p => p !== hostUsername);
@@ -182,15 +208,17 @@ const Room = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-[var(--color-bg-base)] text-[var(--color-text-main)] overflow-hidden">
-      <div className="lg:flex-[2] flex-none aspect-video lg:aspect-auto lg:h-auto flex flex-col p-0 lg:p-6 border-b-2 lg:border-b-0 lg:border-r-2 border-[var(--color-surface-border)] relative bg-black">
-        <div className="absolute top-0 left-0 w-full p-4 lg:relative lg:p-0 flex items-center justify-between mb-0 lg:mb-6 z-30 pointer-events-auto">
-          <button
-            onClick={() => navigate('/home')}
-            className="flex lg:hidden items-center gap-2 text-[var(--color-text-muted)] font-bold hover:text-white transition-colors cursor-pointer"
-          >
-            <ArrowLeft size={18} /> Home
-          </button>
-          <div className="hidden lg:block" />
+      <div className="flex-1 flex flex-col p-0 lg:p-6 border-b-2 lg:border-b-0 relative bg-black min-w-0 h-full overflow-y-auto custom-scrollbar">
+        <div className="absolute top-0 left-0 w-full p-4 lg:relative lg:p-0 flex items-center justify-between mb-0 lg:mb-4 z-30 pointer-events-auto shrink-0">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/home')}
+              className="flex lg:hidden items-center gap-2 text-[var(--color-text-muted)] font-bold hover:text-white transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} /> Home
+            </button>
+            <h2 className="hidden lg:block text-2xl font-black uppercase tracking-tighter">ROOM: <span className="text-[var(--color-accent)]">{roomCode}</span></h2>
+          </div>
           <button
             onClick={handleLeaveRoom}
             className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold uppercase text-sm hover:bg-[var(--color-accent)] hover:text-white transition-all cursor-pointer"
@@ -199,20 +227,69 @@ const Room = () => {
           </button>
         </div>
 
-        <h2 className="hidden lg:block text-3xl font-black uppercase mb-4 tracking-tighter z-30">ROOM: {roomCode}</h2>
+        <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
+          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full max-h-full aspect-video relative overflow-hidden shrink-0">
+            <CustomVideoPlayer />
+          </div>
+        </div>
 
-        <div className="flex-1 bg-black lg:border-2 border-[var(--color-surface-border)] overflow-hidden w-full h-full">
-          <CustomVideoPlayer />
+        <div className="mt-4 shrink-0 h-56 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] tracking-widest">
+              <span className="text-[var(--color-accent)] mr-2">•</span> VIDEO CALL — {participants.length} PARTICIPANTS
+            </h3>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setCamOn(!camOn)}
+                className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${camOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
+              >
+                {camOn ? <Camera size={14} /> : <CameraOff size={14} />}
+                {camOn ? 'CAM ON' : 'CAM OFF'}
+              </button>
+              <button 
+                onClick={() => setMicOn(!micOn)}
+                className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${micOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
+              >
+                {micOn ? <Mic size={14} /> : <MicOff size={14} />}
+                {micOn ? 'MIC ON' : 'MIC OFF'}
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex gap-4 overflow-x-auto pb-2">
+            {displayParticipants.map((p, idx) => (
+              <div key={idx} className="h-full aspect-video min-w-[300px] bg-[var(--color-surface)] border-2 border-[var(--color-surface-border)] flex flex-col justify-end relative">
+                {(!camOn || p !== username) ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
+                    <CameraOff size={24} className="mb-2 opacity-50" />
+                    <span className="text-[10px] font-bold">CAM OFF</span>
+                  </div>
+                ) : null}
+                <div className="bg-[var(--color-surface-hover)] p-2 text-[10px] font-bold uppercase truncate z-10 w-full border-t border-[var(--color-surface-border)]">
+                  {p.length > 15 ? p.substring(0, 15) + '...' : p} {p === username ? '(YOU)' : ''}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col bg-[var(--color-surface)] min-w-0 min-h-0">
+      <div 
+        className="w-1.5 hover:w-2 cursor-col-resize bg-[var(--color-surface-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-all z-40 lg:block hidden" 
+        onMouseDown={handleMouseDown}
+      />
+
+      <div 
+        className="flex flex-col bg-[var(--color-surface)] min-h-0 shrink-0 border-l-2 border-[var(--color-surface-border)] relative"
+        style={{ width: window.innerWidth >= 1024 ? chatWidth : '100%', minWidth: window.innerWidth >= 1024 ? '350px' : '100%' }}
+      >
         <div className="p-4 border-b-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">
           <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] mb-3 tracking-widest">Participants ({participants.length})</h3>
           <div className="flex gap-4 overflow-x-auto pt-4 pb-2 px-2">
             {displayParticipants.map((p, idx) => {
               const isHost = p === hostUsername;
               const isOffline = offlineUsers.includes(p);
+              const displayName = p.length > 8 ? p.substring(0, 8) + '...' : p;
 
               return (
                 <div
@@ -238,7 +315,7 @@ const Room = () => {
                     )}
                   </div>
                   <span className="text-[10px] font-bold uppercase truncate w-full text-center leading-tight">
-                    {p}
+                    {displayName}
                   </span>
                   {isOffline && (
                     <span className="text-[8px] font-bold text-[var(--color-warning)] uppercase mt-0.5 tracking-wide">Offline</span>
@@ -263,7 +340,7 @@ const Room = () => {
         </div>
 
         <div className="p-4 border-t-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
+          <form onSubmit={handleSendMessage} className="flex gap-3 items-stretch">
             <input
               type="text"
               value={messageText}
@@ -271,7 +348,7 @@ const Room = () => {
               placeholder="Send a message..."
               className="custom-input flex-1 px-4 py-3 rounded-none text-sm"
             />
-            <button type="submit" className="gradient-btn px-5 flex items-center justify-center cursor-pointer">
+            <button type="submit" className="gradient-btn px-6 flex items-center justify-center cursor-pointer h-auto">
               <Send size={18} />
             </button>
           </form>

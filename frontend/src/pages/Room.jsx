@@ -49,6 +49,14 @@ const Room = () => {
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
 
+  const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsLg(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     if (!userId) {
       navigate('/login');
@@ -207,9 +215,9 @@ const Room = () => {
   const displayParticipants = hostUser ? [hostUser, ...otherParticipants] : participants;
 
   return (
-    <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-[var(--color-bg-base)] text-[var(--color-text-main)] overflow-hidden">
-      <div className="flex-1 flex flex-col p-0 lg:p-6 border-b-2 lg:border-b-0 relative bg-black min-w-0 h-full overflow-y-auto custom-scrollbar">
-        <div className="absolute top-0 left-0 w-full p-4 lg:relative lg:p-0 flex items-center justify-between mb-0 lg:mb-4 z-30 pointer-events-auto shrink-0">
+    <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-[var(--color-bg-base)] text-[var(--color-text-main)] overflow-y-auto no-scrollbar lg:overflow-hidden">
+      <div className="flex-1 flex flex-col p-0 lg:p-6 border-b-2 lg:border-b-0 relative bg-black min-w-0 lg:h-full overflow-y-visible lg:overflow-y-auto no-scrollbar lg:custom-scrollbar">
+        <div className="relative w-full p-4 lg:p-0 flex items-center justify-between mb-0 lg:mb-4 z-30 pointer-events-auto shrink-0">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/home')}
@@ -233,7 +241,7 @@ const Room = () => {
           </div>
         </div>
 
-        <div className="mt-4 shrink-0 h-56 flex flex-col">
+        <div className="mt-4 shrink-0 h-56 flex flex-col px-4 lg:px-0 pb-6 lg:pb-0">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] tracking-widest">
               <span className="text-[var(--color-accent)] mr-2">•</span> VIDEO CALL — {participants.length} PARTICIPANTS
@@ -280,8 +288,8 @@ const Room = () => {
       />
 
       <div 
-        className="flex flex-col bg-[var(--color-surface)] min-h-0 shrink-0 border-l-2 border-[var(--color-surface-border)] relative"
-        style={{ width: window.innerWidth >= 1024 ? chatWidth : '100%', minWidth: window.innerWidth >= 1024 ? '350px' : '100%' }}
+        className="flex flex-col bg-[var(--color-surface)] min-h-[400px] h-[500px] lg:h-full shrink-0 border-l-2 border-[var(--color-surface-border)] relative"
+        style={{ width: isLg ? chatWidth : '100%', minWidth: isLg ? '350px' : '100%' }}
       >
         <div className="p-4 border-b-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">
           <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] mb-3 tracking-widest">Participants ({participants.length})</h3>

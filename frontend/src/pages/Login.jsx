@@ -26,6 +26,9 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('username', data.user.username);
+        navigate('/home');
       } else {
         setError(data.message || 'Login failed');
       }

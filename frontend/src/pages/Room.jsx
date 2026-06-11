@@ -37,15 +37,17 @@ const Room = () => {
   const [offlineUsers, setOfflineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
   const [hostUsername, setHostUsername] = useState('');
-  
+
   const [videoUrl, setVideoUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+
 
   const [chatWidth, setChatWidth] = useState(320);
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
-  
+
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -76,7 +78,15 @@ const Room = () => {
         if (data.room) {
           setHostUsername(data.room.creator?.username || '');
           if (data.room.videoUrl) {
-            setVideoUrl(data.room.videoUrl);
+            // Fetch presigned GET URL for streaming with range support
+            fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
+              .then(res => res.json())
+              .then(vdata => {
+                if (vdata.url) {
+                  setVideoUrl(vdata.url);
+                }
+              })
+              .catch(err => console.error('Error fetching presigned streaming URL', err));
           }
         }
         const msgs = data.messages || [];
@@ -159,12 +169,17 @@ const Room = () => {
     }, 1500);
   }, [roomCode, username]);
 
+  const handleRetry = () => {
+    setUploadError('');
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError('');
 
     try {
       const startRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/start`, {
@@ -176,7 +191,7 @@ const Room = () => {
 
       const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
       const numChunks = Math.ceil(file.size / CHUNK_SIZE);
-      
+
       const presignRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/presign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,7 +209,7 @@ const Room = () => {
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('PUT', url, true);
-          
+
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               const eTag = xhr.getResponseHeader('ETag');
@@ -205,7 +220,7 @@ const Room = () => {
               reject(new Error(`Upload failed for part ${partNumber}`));
             }
           };
-          
+
           xhr.onerror = () => reject(new Error(`Upload failed for part ${partNumber}`));
           xhr.send(chunk);
         });
@@ -218,18 +233,21 @@ const Room = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts })
       });
-      const { videoUrl: finalUrl } = await completeRes.json();
+        const { videoUrl: rawUrl } = await completeRes.json();
+        // Fetch a presigned GET URL for streaming (range requests)
+        const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
+        const { url: presignedUrl } = await streamRes.json();
+        setVideoUrl(presignedUrl);
+        socket.emit('video-uploaded', { roomCode, videoUrl: presignedUrl });
+        setIsUploading(false);
+        setUploadProgress(100);
+        setUploadError('');
 
-      setVideoUrl(finalUrl);
-      socket.emit('video-uploaded', { roomCode, videoUrl: finalUrl });
-      setIsUploading(false);
-      setUploadProgress(100);
-      
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('Video upload failed.');
       setIsUploading(false);
       setUploadProgress(0);
+      setUploadError(err.message || 'Upload failed');
     }
   };
 
@@ -323,13 +341,13 @@ const Room = () => {
         <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
           <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full max-h-full aspect-video relative overflow-hidden shrink-0 flex items-center justify-center">
             {videoUrl ? (
-              <CustomVideoPlayer src={videoUrl} />
+              <CustomVideoPlayer src={videoUrl} socket={socket} roomCode={roomCode} isHost={username === hostUsername} />
             ) : username === hostUsername ? (
               <div className="flex flex-col items-center justify-center text-[var(--color-text-main)] w-full max-w-md p-6 border-2 border-dashed border-[var(--color-surface-border)] bg-[var(--color-surface)]">
                 <UploadCloud size={48} className="mb-4 text-[var(--color-accent)]" />
                 <h3 className="text-lg font-bold mb-2 uppercase tracking-wide">Upload Video</h3>
                 <p className="text-xs text-[var(--color-text-muted)] text-center mb-6">Select a video file to play for the room.</p>
-                
+
                 {isUploading ? (
                   <div className="w-full flex flex-col items-center">
                     <Loader2 size={24} className="animate-spin text-[var(--color-accent)] mb-2" />
@@ -339,10 +357,20 @@ const Room = () => {
                     <span className="text-xs font-bold mt-2 tracking-wider">{uploadProgress}% UPLOADED</span>
                   </div>
                 ) : (
-                  <label className="gradient-btn px-6 py-2 cursor-pointer uppercase text-xs font-bold tracking-wider">
-                    Select File
-                    <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
-                  </label>
+                  <div className="upload-controls">
+                    <label className="gradient-btn px-6 py-2 cursor-pointer uppercase text-xs font-bold tracking-wider">
+                      Select File
+                      <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
+                    </label>
+                    {uploadError && (
+                      <div className="w-full flex flex-col items-center mt-2">
+                        <p className="text-sm text-[var(--color-warning)] mb-2">{uploadError}</p>
+                        <button onClick={handleRetry} className="gradient-btn px-4 py-2">
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
@@ -361,14 +389,14 @@ const Room = () => {
               <span className="text-[var(--color-accent)] mr-2">•</span> VIDEO CALL — {participants.length} PARTICIPANTS
             </h3>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setCamOn(!camOn)}
                 className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${camOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
               >
                 {camOn ? <Camera size={14} /> : <CameraOff size={14} />}
                 {camOn ? 'CAM ON' : 'CAM OFF'}
               </button>
-              <button 
+              <button
                 onClick={() => setMicOn(!micOn)}
                 className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${micOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
               >
@@ -377,7 +405,7 @@ const Room = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 flex gap-4 overflow-x-auto pb-2">
             {displayParticipants.map((p, idx) => (
               <div key={idx} className="h-full aspect-video min-w-[300px] bg-[var(--color-surface)] border-2 border-[var(--color-surface-border)] flex flex-col justify-end relative">
@@ -396,12 +424,12 @@ const Room = () => {
         </div>
       </div>
 
-      <div 
-        className="w-1.5 hover:w-2 cursor-col-resize bg-[var(--color-surface-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-all z-40 lg:block hidden" 
+      <div
+        className="w-1.5 hover:w-2 cursor-col-resize bg-[var(--color-surface-border)] hover:bg-[var(--color-accent)] active:bg-[var(--color-accent)] transition-all z-40 lg:block hidden"
         onMouseDown={handleMouseDown}
       />
 
-      <div 
+      <div
         className="flex flex-col bg-[var(--color-surface)] min-h-[400px] h-[500px] lg:h-full shrink-0 border-l-2 border-[var(--color-surface-border)] relative"
         style={{ width: isLg ? chatWidth : '100%', minWidth: isLg ? '350px' : '100%' }}
       >

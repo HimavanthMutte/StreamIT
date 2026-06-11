@@ -1,4 +1,4 @@
-const { S3Client, CreateMultipartUploadCommand, CompleteMultipartUploadCommand } = require('@aws-sdk/client-s3');
+const { S3Client, CreateMultipartUploadCommand, CompleteMultipartUploadCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { UploadPartCommand } = require('@aws-sdk/client-s3');
 const Room = require('../models/Room');
@@ -98,5 +98,34 @@ exports.completeMultipartUpload = async (req, res) => {
   } catch (error) {
     console.error('Error completing multipart upload:', error);
     res.status(500).json({ message: 'Error completing multipart upload' });
+  }
+};
+
+exports.getVideoUrl = async (req, res) => {
+  try {
+    const { roomCode } = req.params;
+    const room = await Room.findOne({ roomCode });
+    
+    if (!room || !room.videoUrl) {
+      return res.status(404).json({ message: 'Video not found for this room' });
+    }
+
+    // Extract key from the videoUrl
+    // Assuming videoUrl is of format: https://bucket.s3.region.amazonaws.com/rooms/TEST/...
+    const urlObj = new URL(room.videoUrl);
+    const key = decodeURIComponent(urlObj.pathname.substring(1));
+
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+    });
+
+    // Generate a presigned URL valid for 12 hours
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 12 * 3600 });
+    
+    res.status(200).json({ url: presignedUrl });
+  } catch (error) {
+    console.error('Error getting presigned video url:', error);
+    res.status(500).json({ message: 'Error getting presigned video url' });
   }
 };

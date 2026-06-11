@@ -80,6 +80,18 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('video-uploaded', { videoUrl });
   });
 
+  socket.on('video-play', ({ roomCode, time }) => {
+    socket.to(roomCode).emit('video-play', { time });
+  });
+
+  socket.on('video-pause', ({ roomCode, time }) => {
+    socket.to(roomCode).emit('video-pause', { time });
+  });
+
+  socket.on('video-seek', ({ roomCode, time }) => {
+    socket.to(roomCode).emit('video-seek', { time });
+  });
+
   socket.on('disconnect', () => {
     const { username, roomCode } = socket.data;
     if (roomCode && username) {

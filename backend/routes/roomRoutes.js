@@ -12,5 +12,6 @@ router.get('/:roomCode/messages', roomController.getMessages);
 router.post('/:roomCode/upload/start', uploadController.startMultipartUpload);
 router.post('/:roomCode/upload/presign', uploadController.getPresignedUrls);
 router.post('/:roomCode/upload/complete', uploadController.completeMultipartUpload);
+router.get('/:roomCode/video-url', uploadController.getVideoUrl);
 
 module.exports = router;

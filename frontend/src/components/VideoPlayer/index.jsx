@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './index.css';
 
-const CustomVideoPlayer = ({ src, poster }) => {
+const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,10 +23,13 @@ const CustomVideoPlayer = ({ src, poster }) => {
   };
 
   const togglePlay = () => {
+    if (!isHost) return;
     if (isPlaying) {
       videoRef.current.pause();
+      if (socket && roomCode) socket.emit('video-pause', { roomCode, time: videoRef.current.currentTime });
     } else {
       videoRef.current.play();
+      if (socket && roomCode) socket.emit('video-play', { roomCode, time: videoRef.current.currentTime });
     }
     setIsPlaying(!isPlaying);
   };
@@ -64,9 +67,11 @@ const CustomVideoPlayer = ({ src, poster }) => {
   };
 
   const handleSeek = (e) => {
+    if (!isHost) return;
     const seekTo = (e.target.value / 100) * videoRef.current.duration;
     videoRef.current.currentTime = seekTo;
     setProgress(e.target.value);
+    if (socket && roomCode) socket.emit('video-seek', { roomCode, time: seekTo });
   };
 
   const toggleFullscreen = () => {
@@ -88,6 +93,46 @@ const CustomVideoPlayer = ({ src, poster }) => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    if (!socket || isHost) return;
+
+    const handleVideoPlay = ({ time }) => {
+      if (videoRef.current) {
+        if (Math.abs(videoRef.current.currentTime - time) > 0.5) {
+          videoRef.current.currentTime = time;
+        }
+        videoRef.current.play().catch(e => console.log('Autoplay prevented', e));
+        setIsPlaying(true);
+      }
+    };
+
+    const handleVideoPause = ({ time }) => {
+      if (videoRef.current) {
+        if (Math.abs(videoRef.current.currentTime - time) > 0.5) {
+          videoRef.current.currentTime = time;
+        }
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    };
+
+    const handleVideoSeek = ({ time }) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+      }
+    };
+
+    socket.on('video-play', handleVideoPlay);
+    socket.on('video-pause', handleVideoPause);
+    socket.on('video-seek', handleVideoSeek);
+
+    return () => {
+      socket.off('video-play', handleVideoPlay);
+      socket.off('video-pause', handleVideoPause);
+      socket.off('video-seek', handleVideoSeek);
+    };
+  }, [socket, isHost]);
+
   const handleMouseMove = () => {
     setShowControls(true);
     clearTimeout(controlsTimeout);
@@ -100,6 +145,15 @@ const CustomVideoPlayer = ({ src, poster }) => {
     if (isPlaying) setShowControls(false);
   };
 
+  useEffect(() => {
+    if (src) {
+      videoRef.current?.load();
+      if (isHost) {
+        videoRef.current?.play().catch(() => {});
+      }
+    }
+  }, [src, isHost]);
+
   return (
     <div
       className={`vp-container ${isFullscreen ? 'vp-fullscreen' : ''}`}
@@ -107,76 +161,81 @@ const CustomVideoPlayer = ({ src, poster }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <video
-        ref={videoRef}
-        className="vp-video"
-        src={src || "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"}
-        poster={poster}
-        onClick={togglePlay}
-        onTimeUpdate={handleProgress}
-        onLoadedData={handleLoadedData}
-        onEnded={() => setIsPlaying(false)}
-      />
+        <video
+          ref={videoRef}
+          className="vp-video"
+          src={src || "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"}
+          poster={poster}
+          controls={false}
+          autoPlay
+          style={{ width: '100%', height: '100%' }}
+          onClick={togglePlay}
+          onTimeUpdate={handleProgress}
+          onLoadedData={handleLoadedData}
+          onEnded={() => setIsPlaying(false)}
+        />
 
-      <div className={`vp-controls ${showControls ? 'vp-controls-visible' : 'vp-controls-hidden'}`}>
-        <div className="vp-progress-container">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={progress}
-            onChange={handleSeek}
-            className="vp-progress-bar"
-            style={{ '--progress': `${progress}%` }}
-          />
-        </div>
+      {isHost && (
+        <div className={`vp-controls ${showControls ? 'vp-controls-visible' : 'vp-controls-hidden'}`}>
+          <div className="vp-progress-container">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={progress}
+              onChange={handleSeek}
+              className="vp-progress-bar"
+              style={{ '--progress': `${progress}%` }}
+            />
+          </div>
 
-        <div className="vp-controls-bottom">
-          <div className="vp-controls-left">
-            <button onClick={togglePlay} className="vp-btn" aria-label={isPlaying ? "Pause" : "Play"}>
-              {isPlaying ? (
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-              )}
-            </button>
-
-            <div className="vp-volume-container">
-              <button onClick={toggleMute} className="vp-btn vp-volume-btn" aria-label={isMuted ? "Unmute" : "Mute"}>
-                {isMuted || volume == 0 ? (
-                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+          <div className="vp-controls-bottom">
+            <div className="vp-controls-left">
+              <button onClick={togglePlay} className="vp-btn" aria-label={isPlaying ? "Pause" : "Play"}>
+                {isPlaying ? (
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
                 ) : (
-                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 )}
               </button>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="vp-volume-slider"
-                style={{ '--volume': `${volume * 100}%` }}
-              />
+
+              <div className="vp-volume-container">
+                <button onClick={toggleMute} className="vp-btn vp-volume-btn" aria-label={isMuted ? "Unmute" : "Mute"}>
+                  {isMuted || volume == 0 ? (
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="vp-volume-slider"
+                  style={{ '--volume': `${volume * 100}%` }}
+                />
+              </div>
+
+              <span className="vp-time">
+                {currentTime} / {duration}
+              </span>
             </div>
 
-            <span className="vp-time">
-              {currentTime} / {duration}
-            </span>
-          </div>
-
-          <div className="vp-controls-right">
-            <button onClick={toggleFullscreen} className="vp-btn" aria-label="Fullscreen">
-              {isFullscreen ? (
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
-              ) : (
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-              )}
-            </button>
+            <div className="vp-controls-right">
+              <button onClick={toggleFullscreen} className="vp-btn" aria-label="Fullscreen">
+                {isFullscreen ? (
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

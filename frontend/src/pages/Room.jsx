@@ -155,6 +155,14 @@ const Room = () => {
         .catch(err => console.error('Error fetching streaming URL after upload:', err));
     });
 
+    socket.on('user-typing', ({ username: typingUser, isTyping }) => {
+      setTypingUsers(prev =>
+        isTyping
+          ? prev.includes(typingUser) ? prev : [...prev, typingUser]
+          : prev.filter(u => u !== typingUser)
+      );
+    });
+
     return () => {
       socket.disconnect();
     };

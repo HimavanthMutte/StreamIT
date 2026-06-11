@@ -39,7 +39,8 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const playerRef = useRef(null);
   const controlsTimeoutRef = useRef(null); // FIX: use ref so clearTimeout works across renders
 
-  const [isPlaying, setIsPlaying] = useState(false); // FIX: start as false — sync with actual video state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayBlocked, setIsPlayBlocked] = useState(false); // true when browser blocks autoplay
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,6 +48,21 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const [duration, setDuration] = useState('00:00');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+
+  // Plays the video and shows a "click to play" overlay if the browser blocks it
+  const safePlay = useCallback((video) => {
+    video.play().then(() => {
+      setIsPlayBlocked(false);
+    }).catch(err => {
+      if (err.name === 'NotAllowedError') {
+        // Browser autoplay policy blocked the play() call.
+        // Show an overlay so the participant can click once to satisfy the gesture requirement.
+        setIsPlayBlocked(true);
+      } else {
+        console.warn('video.play() failed:', err);
+      }
+    });
+  }, []);
 
   const formatTime = (time) => {
     if (isNaN(time) || !isFinite(time)) return '00:00';
@@ -176,7 +192,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
       if (Math.abs(video.currentTime - time) > 0.5) {
         video.currentTime = time;
       }
-      video.play().catch(e => console.log('Autoplay prevented', e));
+      safePlay(video);
     };
 
     const handleVideoPause = ({ time }) => {
@@ -203,7 +219,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
       socket.off('video-pause', handleVideoPause);
       socket.off('video-seek', handleVideoSeek);
     };
-  }, [socket, isHost]);
+  }, [socket, isHost, safePlay]);
 
   // ─── Load new src ─────────────────────────────────────────────────────────
 
@@ -224,11 +240,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
     // - Participants: by the time their video finishes loading, the host is
     //   already playing. Auto-playing here syncs them up. From this point on
     //   the host's socket events (video-play/pause/seek) keep everyone in sync.
-    const tryPlay = () => {
-      video.play().catch(err => {
-        console.log('Autoplay blocked by browser, waiting for user interaction:', err);
-      });
-    };
+    const tryPlay = () => safePlay(video);
     video.addEventListener('loadedmetadata', tryPlay, { once: true });
     return () => video.removeEventListener('loadedmetadata', tryPlay);
   }, [src, isHost]);

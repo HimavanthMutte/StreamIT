@@ -146,8 +146,13 @@ const Room = () => {
       }
     });
 
-    socket.on('video-uploaded', ({ videoUrl: newVideoUrl }) => {
-      setVideoUrl(newVideoUrl);
+    socket.on('video-uploaded', () => {
+      fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
+        .then(res => res.json())
+        .then(vdata => {
+          if (vdata.url) setVideoUrl(vdata.url);
+        })
+        .catch(err => console.error('Error fetching streaming URL after upload:', err));
     });
 
     return () => {
@@ -233,15 +238,15 @@ const Room = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts })
       });
-        const { videoUrl: rawUrl } = await completeRes.json();
-        // Fetch a presigned GET URL for streaming (range requests)
-        const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
-        const { url: presignedUrl } = await streamRes.json();
-        setVideoUrl(presignedUrl);
-        socket.emit('video-uploaded', { roomCode, videoUrl: presignedUrl });
-        setIsUploading(false);
-        setUploadProgress(100);
-        setUploadError('');
+      const { videoUrl: rawUrl } = await completeRes.json();
+      // Fetch a presigned GET URL for streaming (range requests)
+      const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
+      const { url: presignedUrl } = await streamRes.json();
+      setVideoUrl(presignedUrl);
+      socket.emit('video-uploaded', { roomCode }); // participants will each fetch their own streaming URL
+      setIsUploading(false);
+      setUploadProgress(100);
+      setUploadError('');
 
     } catch (err) {
       console.error('Upload failed:', err);

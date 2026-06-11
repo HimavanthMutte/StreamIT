@@ -76,8 +76,8 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('user-kicked', { username: targetUsername });
   });
 
-  socket.on('video-uploaded', ({ roomCode, videoUrl }) => {
-    io.to(roomCode).emit('video-uploaded', { videoUrl });
+  socket.on('video-uploaded', ({ roomCode }) => {
+    io.to(roomCode).emit('video-uploaded');
   });
 
   socket.on('video-play', ({ roomCode, time }) => {

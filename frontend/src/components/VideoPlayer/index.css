@@ -3,10 +3,9 @@
 .vp-container {
     position: relative;
     width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+    /* removed max-width so it fills the parent fully when embedded */
     background-color: #050505;
-    border-radius: 12px;
+    border-radius: 0;
     overflow: hidden;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 0, 51, 0.1);
     display: flex;
@@ -184,4 +183,23 @@
     letter-spacing: 0.5px;
     user-select: none;
     margin-left: 5px;
+}
+
+/* Participant-only controls: no progress bar, just volume + fullscreen */
+.vp-participant-controls {
+    padding: 12px 20px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+}
+
+/* Badge shown next to participant's volume slider */
+.vp-local-badge {
+    font-size: 9px !important;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
 }

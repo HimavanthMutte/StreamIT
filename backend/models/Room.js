@@ -19,6 +19,10 @@ const roomSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  videoUrl: {
+    type: String,
+    default: null
   }
 });
 

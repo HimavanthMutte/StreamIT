@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, User, LogOut, Crown, X, Camera, CameraOff, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Send, User, LogOut, Crown, X, Camera, CameraOff, Mic, MicOff, UploadCloud, Loader2 } from 'lucide-react';
 import io from 'socket.io-client';
 import CustomVideoPlayer from '../components/VideoPlayer';
 
@@ -38,6 +38,10 @@ const Room = () => {
   const [typingUsers, setTypingUsers] = useState([]);
   const [hostUsername, setHostUsername] = useState('');
   
+  const [videoUrl, setVideoUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const [chatWidth, setChatWidth] = useState(320);
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
@@ -71,6 +75,9 @@ const Room = () => {
       .then(data => {
         if (data.room) {
           setHostUsername(data.room.creator?.username || '');
+          if (data.room.videoUrl) {
+            setVideoUrl(data.room.videoUrl);
+          }
         }
         const msgs = data.messages || [];
         setMessages(msgs);
@@ -129,6 +136,10 @@ const Room = () => {
       }
     });
 
+    socket.on('video-uploaded', ({ videoUrl: newVideoUrl }) => {
+      setVideoUrl(newVideoUrl);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -147,6 +158,80 @@ const Room = () => {
       socket.emit('user-typing', { roomCode, username, isTyping: false });
     }, 1500);
   }, [roomCode, username]);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const startRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type })
+      });
+      const { uploadId, key } = await startRes.json();
+
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+      const numChunks = Math.ceil(file.size / CHUNK_SIZE);
+      
+      const presignRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, uploadId, parts: numChunks })
+      });
+      const { urls } = await presignRes.json();
+
+      let uploadedBytes = 0;
+
+      const uploadPromises = urls.map(async ({ partNumber, url }, index) => {
+        const start = index * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', url, true);
+          
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const eTag = xhr.getResponseHeader('ETag');
+              uploadedBytes += chunk.size;
+              setUploadProgress(Math.round((uploadedBytes / file.size) * 100));
+              resolve({ ETag: eTag, PartNumber: partNumber });
+            } else {
+              reject(new Error(`Upload failed for part ${partNumber}`));
+            }
+          };
+          
+          xhr.onerror = () => reject(new Error(`Upload failed for part ${partNumber}`));
+          xhr.send(chunk);
+        });
+      });
+
+      const parts = await Promise.all(uploadPromises);
+
+      const completeRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, uploadId, parts })
+      });
+      const { videoUrl: finalUrl } = await completeRes.json();
+
+      setVideoUrl(finalUrl);
+      socket.emit('video-uploaded', { roomCode, videoUrl: finalUrl });
+      setIsUploading(false);
+      setUploadProgress(100);
+      
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Video upload failed.');
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -236,8 +321,37 @@ const Room = () => {
         </div>
 
         <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
-          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full max-h-full aspect-video relative overflow-hidden shrink-0">
-            <CustomVideoPlayer />
+          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full max-h-full aspect-video relative overflow-hidden shrink-0 flex items-center justify-center">
+            {videoUrl ? (
+              <CustomVideoPlayer src={videoUrl} />
+            ) : username === hostUsername ? (
+              <div className="flex flex-col items-center justify-center text-[var(--color-text-main)] w-full max-w-md p-6 border-2 border-dashed border-[var(--color-surface-border)] bg-[var(--color-surface)]">
+                <UploadCloud size={48} className="mb-4 text-[var(--color-accent)]" />
+                <h3 className="text-lg font-bold mb-2 uppercase tracking-wide">Upload Video</h3>
+                <p className="text-xs text-[var(--color-text-muted)] text-center mb-6">Select a video file to play for the room.</p>
+                
+                {isUploading ? (
+                  <div className="w-full flex flex-col items-center">
+                    <Loader2 size={24} className="animate-spin text-[var(--color-accent)] mb-2" />
+                    <div className="w-full bg-[var(--color-bg-base)] h-2 border border-[var(--color-surface-border)] mt-2">
+                      <div className="bg-[var(--color-accent)] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                    </div>
+                    <span className="text-xs font-bold mt-2 tracking-wider">{uploadProgress}% UPLOADED</span>
+                  </div>
+                ) : (
+                  <label className="gradient-btn px-6 py-2 cursor-pointer uppercase text-xs font-bold tracking-wider">
+                    Select File
+                    <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
+                <Loader2 size={40} className="animate-spin mb-4 opacity-50" />
+                <h3 className="text-lg font-bold uppercase tracking-widest text-[var(--color-text-main)] mb-2">Waiting for Host</h3>
+                <p className="text-sm font-medium">The host is uploading a video. Please wait...</p>
+              </div>
+            )}
           </div>
         </div>
 

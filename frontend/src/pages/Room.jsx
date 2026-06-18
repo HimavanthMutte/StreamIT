@@ -352,7 +352,7 @@ const Room = () => {
         </div>
 
         <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
-          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full max-h-full aspect-video relative overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full lg:w-auto lg:h-full max-w-full max-h-full aspect-video relative overflow-hidden shrink-0 flex items-center justify-center">
             {videoUrl ? (
               <CustomVideoPlayer src={videoUrl} socket={socket} roomCode={roomCode} isHost={username === hostUsername} />
             ) : username === hostUsername ? (
@@ -367,7 +367,9 @@ const Room = () => {
                     <div className="w-full bg-[var(--color-bg-base)] h-2 border border-[var(--color-surface-border)] mt-2">
                       <div className="bg-[var(--color-accent)] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                     </div>
-                    <span className="text-xs font-bold mt-2 tracking-wider">{uploadProgress}% UPLOADED</span>
+                    <span className="text-xs font-bold mt-2 tracking-wider">
+                      {uploadProgress === 100 ? 'PROCESSING VIDEO...' : `${uploadProgress}% UPLOADED`}
+                    </span>
                   </div>
                 ) : (
                   <div className="upload-controls">

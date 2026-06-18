@@ -352,7 +352,7 @@ const Room = () => {
         </div>
 
         <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
-          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full lg:w-auto lg:h-full max-w-full max-h-full aspect-video relative overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full h-full relative overflow-hidden shrink-0 flex items-center justify-center">
             {videoUrl ? (
               <CustomVideoPlayer src={videoUrl} socket={socket} roomCode={roomCode} isHost={username === hostUsername} />
             ) : username === hostUsername ? (

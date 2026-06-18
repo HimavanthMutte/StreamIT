@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import './index.css';
 
 // ─── Stable top-level component — MUST live outside CustomVideoPlayer ──────────
@@ -48,6 +49,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const [duration, setDuration] = useState('00:00');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
 
   // Plays the video and shows a "click to play" overlay if the browser blocks it
   const safePlay = useCallback((video) => {
@@ -139,6 +141,10 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
       setDuration(formatTime(videoRef.current.duration));
     }
   };
+
+  const handleCanPlay = () => setIsVideoLoading(false);
+  const handleWaiting = () => setIsVideoLoading(true);
+  const handlePlaying = () => setIsVideoLoading(false);
 
   // ─── Fullscreen ───────────────────────────────────────────────────────────
 
@@ -232,6 +238,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
     setCurrentTime('00:00');
     setDuration('00:00');
     setIsPlaying(false);
+    setIsVideoLoading(true);
 
     video.load();
 
@@ -272,6 +279,12 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
+      {isVideoLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 pointer-events-none">
+          <Loader2 size={48} className="animate-spin text-[#ff0033]" />
+          <p className="text-[#ff0033] text-xs font-bold mt-4 tracking-widest uppercase">Buffering...</p>
+        </div>
+      )}
       <video
         ref={videoRef}
         className="vp-video"
@@ -282,6 +295,9 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
         onClick={togglePlay}
         onTimeUpdate={handleProgress}
         onLoadedData={handleLoadedData}
+        onCanPlay={handleCanPlay}
+        onWaiting={handleWaiting}
+        onPlaying={handlePlaying}
       />
 
       {/* ── HOST controls (full: play/pause, seek, volume, fullscreen) ── */}

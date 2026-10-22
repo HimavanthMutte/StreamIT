@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, User, LogOut, Crown, X, Camera, CameraOff, Mic, MicOff, UploadCloud, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, User, LogOut, Crown, X, UploadCloud, Loader2 } from 'lucide-react';
 import io from 'socket.io-client';
 import CustomVideoPlayer from '../components/VideoPlayer';
 
@@ -45,8 +45,6 @@ const Room = () => {
 
 
   const [chatWidth, setChatWidth] = useState(320);
-  const [camOn, setCamOn] = useState(false);
-  const [micOn, setMicOn] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -398,45 +396,6 @@ const Room = () => {
           </div>
         </div>
 
-        <div className="mt-4 shrink-0 h-56 flex flex-col px-4 lg:px-0 pb-6 lg:pb-0">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] tracking-widest">
-              <span className="text-[var(--color-accent)] mr-2">•</span> VIDEO CALL — {participants.length} PARTICIPANTS
-            </h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCamOn(!camOn)}
-                className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${camOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
-              >
-                {camOn ? <Camera size={14} /> : <CameraOff size={14} />}
-                {camOn ? 'CAM ON' : 'CAM OFF'}
-              </button>
-              <button
-                onClick={() => setMicOn(!micOn)}
-                className={`flex items-center justify-center gap-2 w-32 py-1.5 border-2 ${micOn ? 'border-green-500 text-green-500' : 'border-[var(--color-surface-border)] text-[var(--color-text-muted)] hover:text-white hover:border-white'} text-xs font-bold uppercase transition-colors cursor-pointer`}
-              >
-                {micOn ? <Mic size={14} /> : <MicOff size={14} />}
-                {micOn ? 'MIC ON' : 'MIC OFF'}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 flex gap-4 overflow-x-auto pb-2">
-            {displayParticipants.map((p, idx) => (
-              <div key={idx} className="h-full aspect-video min-w-[300px] bg-[var(--color-surface)] border-2 border-[var(--color-surface-border)] flex flex-col justify-end relative">
-                {(!camOn || p !== username) ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
-                    <CameraOff size={24} className="mb-2 opacity-50" />
-                    <span className="text-[10px] font-bold">CAM OFF</span>
-                  </div>
-                ) : null}
-                <div className="bg-[var(--color-surface-hover)] p-2 text-[10px] font-bold uppercase truncate z-10 w-full border-t border-[var(--color-surface-border)]">
-                  {p.length > 15 ? p.substring(0, 15) + '...' : p} {p === username ? '(YOU)' : ''}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div

@@ -6,7 +6,7 @@ const ParticipantList = ({
   hostUsername,
   currentUsername,
   offlineUsers,
-  onKickUser
+  onKickUser,
 }) => {
   return (
     <div className="p-4 border-b-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">

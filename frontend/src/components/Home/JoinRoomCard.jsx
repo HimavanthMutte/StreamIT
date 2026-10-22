@@ -30,7 +30,10 @@ const JoinRoomCard = ({ joinCode, setJoinCode, joinError, onSubmit }) => {
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
           />
         </div>
-        <button type="submit" className="gradient-btn w-full py-4 flex items-center justify-center gap-2 cursor-pointer">
+        <button
+          type="submit"
+          className="gradient-btn w-full py-4 flex items-center justify-center gap-2 cursor-pointer"
+        >
           <ArrowRight size={18} /> Join Room
         </button>
       </form>

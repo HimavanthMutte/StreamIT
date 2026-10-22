@@ -17,12 +17,12 @@ const Home = () => {
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
 
-  const fetchJoinedRooms = () => {
+  const fetchJoinedRooms = React.useCallback(() => {
     fetch(`http://localhost:5000/api/rooms/joined?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => setJoinedRooms(Array.isArray(data) ? data : []))
-      .catch(err => console.error('Error fetching rooms:', err));
-  };
+      .then((res) => res.json())
+      .then((data) => setJoinedRooms(Array.isArray(data) ? data : []))
+      .catch((err) => console.error('Error fetching rooms:', err));
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -30,7 +30,7 @@ const Home = () => {
       return;
     }
     fetchJoinedRooms();
-  }, [userId, navigate]);
+  }, [userId, navigate, fetchJoinedRooms]);
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ const Home = () => {
       const res = await fetch('http://localhost:5000/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode: createCode, userId })
+        body: JSON.stringify({ roomCode: createCode, userId }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -49,7 +49,7 @@ const Home = () => {
       } else {
         setCreateError(data.message || 'Failed to create room');
       }
-    } catch (err) {
+    } catch (_err) {
       setCreateError('Could not reach server.');
     }
   };
@@ -63,7 +63,7 @@ const Home = () => {
       const res = await fetch('http://localhost:5000/api/rooms/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode: joinCode, userId })
+        body: JSON.stringify({ roomCode: joinCode, userId }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -71,7 +71,7 @@ const Home = () => {
       } else {
         setJoinError(data.message || 'Failed to join room');
       }
-    } catch (err) {
+    } catch (_err) {
       setJoinError('Could not reach server.');
     }
   };
@@ -85,13 +85,13 @@ const Home = () => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+      transition: { staggerChildren: 0.1 },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
   };
 
   return (
@@ -104,7 +104,10 @@ const Home = () => {
         initial="hidden"
         animate="visible"
       >
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <motion.div
+          variants={itemVariants}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8"
+        >
           <CreateRoomCard
             createCode={createCode}
             setCreateCode={setCreateCode}
@@ -120,10 +123,7 @@ const Home = () => {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <RoomList
-            rooms={joinedRooms}
-            onRoomClick={(code) => navigate(`/room/${code}`)}
-          />
+          <RoomList rooms={joinedRooms} onRoomClick={(code) => navigate(`/room/${code}`)} />
         </motion.div>
       </motion.div>
     </div>

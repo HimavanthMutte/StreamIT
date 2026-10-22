@@ -22,7 +22,7 @@ const Signup = () => {
       const res = await fetch('http://localhost:5000/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username, email, password }),
       });
 
       const data = await res.json();
@@ -35,7 +35,7 @@ const Signup = () => {
       } else {
         setError(data.message || 'Signup failed');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An error occurred. Is the backend running?');
     } finally {
       setIsLoading(false);
@@ -50,9 +50,9 @@ const Signup = () => {
         duration: 0.8,
         ease: [0.16, 1, 0.3, 1],
         staggerChildren: 0.1,
-      }
+      },
     },
-    exit: { opacity: 0, transition: { duration: 0.3 } }
+    exit: { opacity: 0, transition: { duration: 0.3 } },
   };
 
   const itemVariants = {
@@ -63,8 +63,8 @@ const Signup = () => {
       transition: {
         duration: 0.6,
         ease: [0.16, 1, 0.3, 1],
-      }
-    }
+      },
+    },
   };
 
   return (
@@ -83,7 +83,10 @@ const Signup = () => {
           className="absolute bottom-0 right-0 w-full h-8 bg-black/50 origin-right"
         />
 
-        <motion.h1 variants={itemVariants} className="text-hero font-black text-black uppercase mb-6 tracking-tighter">
+        <motion.h1
+          variants={itemVariants}
+          className="text-hero font-black text-black uppercase mb-6 tracking-tighter"
+        >
           JOIN NOW
         </motion.h1>
       </div>
@@ -143,17 +146,26 @@ const Signup = () => {
                 ) : (
                   <>
                     Sign Up
-                    <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-300" />
+                    <ArrowRight
+                      size={20}
+                      className="group-hover:translate-x-2 transition-transform duration-300"
+                    />
                   </>
                 )}
               </button>
             </motion.div>
           </form>
 
-          <motion.div variants={itemVariants} className="mt-12 pt-8 border-t border-[var(--color-surface-border)]">
+          <motion.div
+            variants={itemVariants}
+            className="mt-12 pt-8 border-t border-[var(--color-surface-border)]"
+          >
             <p className="text-sm text-[var(--color-text-muted)] font-medium">
               ALREADY REGISTERED?{' '}
-              <Link to="/login" className="text-[var(--color-accent)] hover:text-white font-bold transition-colors uppercase tracking-wider ml-2 border-b-2 border-transparent hover:border-[var(--color-accent)] pb-1">
+              <Link
+                to="/login"
+                className="text-[var(--color-accent)] hover:text-white font-bold transition-colors uppercase tracking-wider ml-2 border-b-2 border-transparent hover:border-[var(--color-accent)] pb-1"
+              >
                 Log In
               </Link>
             </p>

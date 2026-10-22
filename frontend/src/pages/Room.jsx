@@ -44,6 +44,25 @@ const Room = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handleLeaveRoom = useCallback(async () => {
+    if (socket) {
+      socket.emit('leave-room', { roomCode, username });
+      socket.disconnect();
+    }
+
+    try {
+      await fetch('http://localhost:5000/api/rooms/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode, userId }),
+      });
+    } catch (err) {
+      console.error('Error leaving room:', err);
+    }
+
+    navigate('/home');
+  }, [roomCode, username, userId, navigate]);
+
   // Initialize socket & fetch room data
   useEffect(() => {
     if (!userId) {
@@ -55,17 +74,17 @@ const Room = () => {
     socket.emit('join-room', { roomCode, username });
 
     fetch(`http://localhost:5000/api/rooms/${roomCode}/messages`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.room) {
           setHostUsername(data.room.creator?.username || '');
           if (data.room.videoUrl) {
             fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
-              .then(res => res.json())
-              .then(vdata => {
+              .then((res) => res.json())
+              .then((vdata) => {
                 if (vdata.url) setVideoUrl(vdata.url);
               })
-              .catch(err => console.error('Error fetching presigned streaming URL', err));
+              .catch((err) => console.error('Error fetching presigned streaming URL', err));
           }
         }
         const msgs = data.messages || [];
@@ -73,7 +92,7 @@ const Room = () => {
 
         const seen = new Set();
         const initial = [];
-        msgs.forEach(msg => {
+        msgs.forEach((msg) => {
           const name = msg.sender?.username;
           if (name && !seen.has(name)) {
             seen.add(name);
@@ -83,33 +102,37 @@ const Room = () => {
         if (!seen.has(username)) {
           initial.push(username);
         }
-        if (data.room && data.room.creator?.username && !initial.includes(data.room.creator.username)) {
+        if (
+          data.room &&
+          data.room.creator?.username &&
+          !initial.includes(data.room.creator.username)
+        ) {
           initial.push(data.room.creator.username);
         }
         setParticipants(initial);
       })
-      .catch(err => console.error('Error fetching room messages:', err));
+      .catch((err) => console.error('Error fetching room messages:', err));
 
     socket.on('user-joined', ({ username: joinedUser }) => {
-      setParticipants(prev => (prev.includes(joinedUser) ? prev : [...prev, joinedUser]));
-      setOfflineUsers(prev => prev.filter(u => u !== joinedUser));
+      setParticipants((prev) => (prev.includes(joinedUser) ? prev : [...prev, joinedUser]));
+      setOfflineUsers((prev) => prev.filter((u) => u !== joinedUser));
     });
 
     socket.on('user-left', ({ username: leftUser }) => {
-      setParticipants(prev => prev.filter(p => p !== leftUser));
-      setTypingUsers(prev => prev.filter(u => u !== leftUser));
-      setOfflineUsers(prev => prev.filter(u => u !== leftUser));
+      setParticipants((prev) => prev.filter((p) => p !== leftUser));
+      setTypingUsers((prev) => prev.filter((u) => u !== leftUser));
+      setOfflineUsers((prev) => prev.filter((u) => u !== leftUser));
     });
 
     socket.on('user-disconnected', ({ username: disconnectedUser }) => {
-      setOfflineUsers(prev =>
+      setOfflineUsers((prev) =>
         prev.includes(disconnectedUser) ? prev : [...prev, disconnectedUser]
       );
-      setTypingUsers(prev => prev.filter(u => u !== disconnectedUser));
+      setTypingUsers((prev) => prev.filter((u) => u !== disconnectedUser));
     });
 
     socket.on('receive-message', (newMessage) => {
-      setMessages(prev => [...prev, newMessage]);
+      setMessages((prev) => [...prev, newMessage]);
     });
 
     socket.on('user-kicked', ({ username: kickedUser }) => {
@@ -117,48 +140,53 @@ const Room = () => {
         alert('You have been kicked from the room by the host.');
         handleLeaveRoom();
       } else {
-        setParticipants(prev => prev.filter(p => p !== kickedUser));
-        setTypingUsers(prev => prev.filter(u => u !== kickedUser));
-        setOfflineUsers(prev => prev.filter(u => u !== kickedUser));
+        setParticipants((prev) => prev.filter((p) => p !== kickedUser));
+        setTypingUsers((prev) => prev.filter((u) => u !== kickedUser));
+        setOfflineUsers((prev) => prev.filter((u) => u !== kickedUser));
       }
     });
 
     socket.on('video-uploaded', () => {
       fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
-        .then(res => res.json())
-        .then(vdata => {
+        .then((res) => res.json())
+        .then((vdata) => {
           if (vdata.url) setVideoUrl(vdata.url);
         })
-        .catch(err => console.error('Error fetching streaming URL after upload:', err));
+        .catch((err) => console.error('Error fetching streaming URL after upload:', err));
     });
 
     socket.on('user-typing', ({ username: typingUser, isTyping }) => {
-      setTypingUsers(prev =>
+      setTypingUsers((prev) =>
         isTyping
-          ? prev.includes(typingUser) ? prev : [...prev, typingUser]
-          : prev.filter(u => u !== typingUser)
+          ? prev.includes(typingUser)
+            ? prev
+            : [...prev, typingUser]
+          : prev.filter((u) => u !== typingUser)
       );
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [roomCode, userId, username, navigate]);
+  }, [roomCode, userId, username, navigate, handleLeaveRoom]);
 
   // Scroll chat to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleTyping = useCallback((e) => {
-    setMessageText(e.target.value);
-    socket.emit('user-typing', { roomCode, username, isTyping: true });
+  const handleTyping = useCallback(
+    (e) => {
+      setMessageText(e.target.value);
+      socket.emit('user-typing', { roomCode, username, isTyping: true });
 
-    clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('user-typing', { roomCode, username, isTyping: false });
-    }, 1500);
-  }, [roomCode, username]);
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('user-typing', { roomCode, username, isTyping: false });
+      }, 1500);
+    },
+    [roomCode, username]
+  );
 
   const handleRetry = () => {
     setUploadError('');
@@ -176,7 +204,7 @@ const Room = () => {
       const startRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type })
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
       const { uploadId, key } = await startRes.json();
 
@@ -186,7 +214,7 @@ const Room = () => {
       const presignRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/presign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, uploadId, parts: numChunks })
+        body: JSON.stringify({ key, uploadId, parts: numChunks }),
       });
       const { urls } = await presignRes.json();
 
@@ -219,11 +247,14 @@ const Room = () => {
 
       const parts = await Promise.all(uploadPromises);
 
-      const completeRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, uploadId, parts })
-      });
+      const completeRes = await fetch(
+        `http://localhost:5000/api/rooms/${roomCode}/upload/complete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, uploadId, parts }),
+        }
+      );
       await completeRes.json();
 
       const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
@@ -233,7 +264,6 @@ const Room = () => {
       setIsUploading(false);
       setUploadProgress(100);
       setUploadError('');
-
     } catch (err) {
       console.error('Upload failed:', err);
       setIsUploading(false);
@@ -253,26 +283,9 @@ const Room = () => {
       roomCode,
       senderId: userId,
       username,
-      text: messageText
+      text: messageText,
     });
     setMessageText('');
-  };
-
-  const handleLeaveRoom = async () => {
-    socket.emit('leave-room', { roomCode, username });
-    socket.disconnect();
-
-    try {
-      await fetch('http://localhost:5000/api/rooms/leave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode, userId })
-      });
-    } catch (err) {
-      console.error('Error leaving room:', err);
-    }
-
-    navigate('/home');
   };
 
   const handleKickUser = (targetUsername) => {
@@ -283,29 +296,31 @@ const Room = () => {
     }
   };
 
-  const handleMouseMove = useCallback((e) => {
-    if (!isDraggingRef.current) return;
-    const newWidth = document.body.clientWidth - e.clientX;
-    if (newWidth >= 350 && newWidth <= document.body.clientWidth * 0.5) {
-      setChatWidth(newWidth);
-    }
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  }, [handleMouseMove]);
-
-  const handleMouseDown = () => {
+  const handleMouseDown = (e) => {
+    e.preventDefault();
     isDraggingRef.current = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+
+    const onMouseMove = (moveEvent) => {
+      if (!isDraggingRef.current) return;
+      const newWidth = document.body.clientWidth - moveEvent.clientX;
+      if (newWidth >= 350 && newWidth <= document.body.clientWidth * 0.5) {
+        setChatWidth(newWidth);
+      }
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   };
 
-  const othersTyping = typingUsers.filter(u => u !== username);
-  const hostUser = participants.find(p => p === hostUsername);
-  const otherParticipants = participants.filter(p => p !== hostUsername);
+  const othersTyping = typingUsers.filter((u) => u !== username);
+  const hostUser = participants.find((p) => p === hostUsername);
+  const otherParticipants = participants.filter((p) => p !== hostUsername);
   const displayParticipants = hostUser ? [hostUser, ...otherParticipants] : participants;
 
   return (

@@ -21,7 +21,7 @@ const Login = () => {
       const res = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -34,7 +34,7 @@ const Login = () => {
       } else {
         setError(data.message || 'Login failed');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('An error occurred. Is the backend running?');
     } finally {
       setIsLoading(false);
@@ -49,9 +49,9 @@ const Login = () => {
         duration: 0.8,
         ease: [0.16, 1, 0.3, 1],
         staggerChildren: 0.1,
-      }
+      },
     },
-    exit: { opacity: 0, transition: { duration: 0.3 } }
+    exit: { opacity: 0, transition: { duration: 0.3 } },
   };
 
   const itemVariants = {
@@ -62,8 +62,8 @@ const Login = () => {
       transition: {
         duration: 0.6,
         ease: [0.16, 1, 0.3, 1],
-      }
-    }
+      },
+    },
   };
 
   return (
@@ -82,10 +82,18 @@ const Login = () => {
           className="absolute top-0 left-0 w-full h-4 bg-[var(--color-accent)] origin-left"
         />
 
-        <motion.h1 variants={itemVariants} className="text-hero font-black text-[var(--color-accent)] uppercase mb-6 tracking-tighter">
-          STREAM<br />IT.
+        <motion.h1
+          variants={itemVariants}
+          className="text-hero font-black text-[var(--color-accent)] uppercase mb-6 tracking-tighter"
+        >
+          STREAM
+          <br />
+          IT.
         </motion.h1>
-        <motion.p variants={itemVariants} className="text-subhero text-[var(--color-text-muted)] max-w-lg leading-tight">
+        <motion.p
+          variants={itemVariants}
+          className="text-subhero text-[var(--color-text-muted)] max-w-lg leading-tight"
+        >
           The definitive cinematic experience. <br /> Sign in to continue watching.
         </motion.p>
       </div>
@@ -118,7 +126,10 @@ const Login = () => {
               disabled={isLoading}
               variants={itemVariants}
               extraLabelRight={
-                <a href="#" className="text-xs font-bold text-[var(--color-accent)] hover:text-white transition-colors uppercase tracking-wider">
+                <a
+                  href="#"
+                  className="text-xs font-bold text-[var(--color-accent)] hover:text-white transition-colors uppercase tracking-wider"
+                >
                   Forgot?
                 </a>
               }
@@ -138,17 +149,26 @@ const Login = () => {
                 ) : (
                   <>
                     Access Account
-                    <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform duration-300" />
+                    <ArrowRight
+                      size={20}
+                      className="group-hover:translate-x-2 transition-transform duration-300"
+                    />
                   </>
                 )}
               </button>
             </motion.div>
           </form>
 
-          <motion.div variants={itemVariants} className="mt-12 pt-8 border-t border-[var(--color-surface-border)]">
+          <motion.div
+            variants={itemVariants}
+            className="mt-12 pt-8 border-t border-[var(--color-surface-border)]"
+          >
             <p className="text-sm text-[var(--color-text-muted)] font-medium">
               NO ACCOUNT YET?{' '}
-              <Link to="/signup" className="text-[var(--color-accent)] hover:text-white font-bold transition-colors uppercase tracking-wider ml-2 border-b-2 border-transparent hover:border-[var(--color-accent)] pb-1">
+              <Link
+                to="/signup"
+                className="text-[var(--color-accent)] hover:text-white font-bold transition-colors uppercase tracking-wider ml-2 border-b-2 border-transparent hover:border-[var(--color-accent)] pb-1"
+              >
                 Create One
               </Link>
             </p>

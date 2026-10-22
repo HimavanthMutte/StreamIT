@@ -17,7 +17,7 @@ exports.createRoom = async (req, res) => {
     const room = new Room({
       roomCode,
       creator: userId,
-      participants: [userId]
+      participants: [userId],
     });
     await room.save();
 
@@ -76,7 +76,9 @@ exports.getMessages = async (req, res) => {
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
     }
-    const messages = await Message.find({ roomCode }).populate('sender', 'username').sort({ timestamp: 1 });
+    const messages = await Message.find({ roomCode })
+      .populate('sender', 'username')
+      .sort({ timestamp: 1 });
     res.status(200).json({ room, messages });
   } catch (error) {
     console.error(error);
@@ -97,9 +99,7 @@ exports.leaveRoom = async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
-    room.participants = room.participants.filter(
-      (p) => p.toString() !== userId.toString()
-    );
+    room.participants = room.participants.filter((p) => p.toString() !== userId.toString());
 
     if (room.participants.length === 0) {
       await Room.deleteOne({ roomCode });

@@ -4,21 +4,21 @@ const messageSchema = new mongoose.Schema({
   roomCode: {
     type: String,
     required: true,
-    index: true
+    index: true,
   },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   text: {
     type: String,
-    required: true
+    required: true,
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model('Message', messageSchema);

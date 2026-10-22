@@ -27,9 +27,9 @@ const corsParams = {
 const run = async () => {
   try {
     const data = await client.send(new PutBucketCorsCommand(corsParams));
-    console.log("Success, CORS set", data);
+    console.log('Success, CORS set', data);
   } catch (err) {
-    console.log("Error", err);
+    console.log('Error', err);
   }
 };
 run();

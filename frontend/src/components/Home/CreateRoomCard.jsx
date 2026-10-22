@@ -30,7 +30,10 @@ const CreateRoomCard = ({ createCode, setCreateCode, createError, onSubmit }) =>
             onChange={(e) => setCreateCode(e.target.value.toUpperCase())}
           />
         </div>
-        <button type="submit" className="gradient-btn w-full py-4 flex items-center justify-center gap-2 cursor-pointer">
+        <button
+          type="submit"
+          className="gradient-btn w-full py-4 flex items-center justify-center gap-2 cursor-pointer"
+        >
           <Plus size={18} /> Create Room
         </button>
       </form>

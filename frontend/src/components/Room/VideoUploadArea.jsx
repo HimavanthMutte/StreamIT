@@ -7,7 +7,7 @@ const VideoUploadArea = ({
   uploadProgress,
   uploadError,
   onFileUpload,
-  onRetry
+  onRetry,
 }) => {
   if (isHost) {
     return (
@@ -35,20 +35,12 @@ const VideoUploadArea = ({
           <div className="upload-controls">
             <label className="gradient-btn px-6 py-2 cursor-pointer uppercase text-xs font-bold tracking-wider inline-block">
               Select File
-              <input
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={onFileUpload}
-              />
+              <input type="file" accept="video/*" className="hidden" onChange={onFileUpload} />
             </label>
             {uploadError && (
               <div className="w-full flex flex-col items-center mt-2">
                 <p className="text-sm text-[var(--color-warning)] mb-2">{uploadError}</p>
-                <button
-                  onClick={onRetry}
-                  className="gradient-btn px-4 py-2 cursor-pointer"
-                >
+                <button onClick={onRetry} className="gradient-btn px-4 py-2 cursor-pointer">
                   Retry
                 </button>
               </div>

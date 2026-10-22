@@ -16,27 +16,27 @@ exports.signup = async (req, res) => {
     user = new User({
       username,
       email,
-      password: hashedPassword
+      password: hashedPassword,
     });
 
     await user.save();
 
     const payload = {
       user: {
-        id: user.id
-      }
+        id: user.id,
+      },
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET);
 
     res.status(201).json({
-      token, user: {
+      token,
+      user: {
         id: user.id,
         username: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
-
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server error');
@@ -59,20 +59,20 @@ exports.login = async (req, res) => {
 
     const payload = {
       user: {
-        id: user.id
-      }
+        id: user.id,
+      },
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET);
 
     res.json({
-      token, user: {
+      token,
+      user: {
         id: user.id,
         username: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
-
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server error');

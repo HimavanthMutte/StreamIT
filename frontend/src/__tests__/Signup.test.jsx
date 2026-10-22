@@ -104,13 +104,13 @@ describe('Signup Component', () => {
       token: 'jwt-signup-token-456',
       user: {
         id: 'new-user-id-789',
-        username: 'cinephile99'
-      }
+        username: 'cinephile99',
+      },
     };
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => fakeUserData
+      json: async () => fakeUserData,
     });
 
     renderSignup();
@@ -132,8 +132,8 @@ describe('Signup Component', () => {
       body: JSON.stringify({
         username: 'cinephile99',
         email: 'cinephile99@example.com',
-        password: 'supersecret'
-      })
+        password: 'supersecret',
+      }),
     });
 
     await waitFor(() => {
@@ -149,7 +149,7 @@ describe('Signup Component', () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ message: 'User already exists' })
+      json: async () => ({ message: 'User already exists' }),
     });
 
     renderSignup();
@@ -177,7 +177,7 @@ describe('Signup Component', () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({})
+      json: async () => ({}),
     });
 
     renderSignup();
@@ -246,8 +246,8 @@ describe('Signup Component', () => {
       ok: true,
       json: async () => ({
         token: 'new-token-123',
-        user: { id: '99', username: 'user' }
-      })
+        user: { id: '99', username: 'user' },
+      }),
     });
 
     await waitFor(() => {

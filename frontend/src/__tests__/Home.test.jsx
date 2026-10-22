@@ -53,7 +53,7 @@ describe('Home Component', () => {
     setupAuthenticatedUser();
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     renderHome();
@@ -92,12 +92,12 @@ describe('Home Component', () => {
 
     const mockRooms = [
       { _id: '1', roomCode: 'CINEMA-CLUB', createdAt: '2026-03-01T12:00:00.000Z' },
-      { _id: '2', roomCode: 'RETRO-WATCH', createdAt: '2026-03-02T15:30:00.000Z' }
+      { _id: '2', roomCode: 'RETRO-WATCH', createdAt: '2026-03-02T15:30:00.000Z' },
     ];
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => mockRooms
+      json: async () => mockRooms,
     });
 
     renderHome();
@@ -120,7 +120,7 @@ describe('Home Component', () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     renderHome();
@@ -140,13 +140,13 @@ describe('Home Component', () => {
     // Initial fetch for rooms
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Create room fetch response
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ message: 'Room created successfully', roomCode: 'MARVEL-NIGHT' })
+      json: async () => ({ message: 'Room created successfully', roomCode: 'MARVEL-NIGHT' }),
     });
 
     renderHome();
@@ -162,7 +162,7 @@ describe('Home Component', () => {
     expect(global.fetch).toHaveBeenCalledWith('http://localhost:5000/api/rooms/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode: 'MARVEL-NIGHT', userId: mockUserId })
+      body: JSON.stringify({ roomCode: 'MARVEL-NIGHT', userId: mockUserId }),
     });
 
     await waitFor(() => {
@@ -177,13 +177,13 @@ describe('Home Component', () => {
     // Initial fetch for rooms
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Create room error response
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ message: 'Room code already exists' })
+      json: async () => ({ message: 'Room code already exists' }),
     });
 
     renderHome();
@@ -208,7 +208,7 @@ describe('Home Component', () => {
     // Initial fetch
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Network error on create
@@ -234,13 +234,13 @@ describe('Home Component', () => {
     // Initial fetch
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Join room success
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ message: 'Joined successfully' })
+      json: async () => ({ message: 'Joined successfully' }),
     });
 
     renderHome();
@@ -256,7 +256,7 @@ describe('Home Component', () => {
     expect(global.fetch).toHaveBeenCalledWith('http://localhost:5000/api/rooms/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode: 'PARTY-101', userId: mockUserId })
+      body: JSON.stringify({ roomCode: 'PARTY-101', userId: mockUserId }),
     });
 
     await waitFor(() => {
@@ -271,13 +271,13 @@ describe('Home Component', () => {
     // Initial fetch
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Join room error
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ message: 'Room not found' })
+      json: async () => ({ message: 'Room not found' }),
     });
 
     renderHome();
@@ -302,7 +302,7 @@ describe('Home Component', () => {
     // Initial fetch
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
 
     // Network failure on join

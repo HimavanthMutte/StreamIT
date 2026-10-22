@@ -80,13 +80,13 @@ describe('Login Component', () => {
       token: 'jwt-mock-token-xyz',
       user: {
         id: 'user-12345',
-        username: 'cinephile'
-      }
+        username: 'cinephile',
+      },
     };
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => fakeUserData
+      json: async () => fakeUserData,
     });
 
     renderLogin();
@@ -105,8 +105,8 @@ describe('Login Component', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'cinephile@example.com',
-        password: 'mypassword123'
-      })
+        password: 'mypassword123',
+      }),
     });
 
     await waitFor(() => {
@@ -122,7 +122,7 @@ describe('Login Component', () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({ message: 'Invalid credentials' })
+      json: async () => ({ message: 'Invalid credentials' }),
     });
 
     renderLogin();
@@ -148,7 +148,7 @@ describe('Login Component', () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
-      json: async () => ({})
+      json: async () => ({}),
     });
 
     renderLogin();
@@ -213,8 +213,8 @@ describe('Login Component', () => {
       ok: true,
       json: async () => ({
         token: 'token-123',
-        user: { id: '1', username: 'user1' }
-      })
+        user: { id: '1', username: 'user1' },
+      }),
     });
 
     await waitFor(() => {

@@ -17,7 +17,7 @@ const ChatSidebar = ({
   messagesEndRef,
   messageText,
   onTyping,
-  onSendMessage
+  onSendMessage,
 }) => {
   return (
     <div

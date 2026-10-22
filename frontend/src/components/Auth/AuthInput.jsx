@@ -13,7 +13,7 @@ const AuthInput = ({
   required = true,
   variants,
   extraLabelRight,
-  allowPasswordToggle = false
+  allowPasswordToggle = false,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const inputType = allowPasswordToggle ? (showPassword ? 'text' : 'password') : type;

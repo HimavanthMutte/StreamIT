@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AuthInput from '../components/Auth/AuthInput';
+import AuthErrorBanner from '../components/Auth/AuthErrorBanner';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -75,7 +76,6 @@ const Signup = () => {
       exit="exit"
     >
       <div className="flex-1 flex flex-col justify-center p-8 lg:p-24 bg-[var(--color-accent)] border-b lg:border-b-0 lg:border-l border-[var(--color-surface-border)] relative overflow-hidden">
-
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -87,78 +87,53 @@ const Signup = () => {
           JOIN NOW
         </motion.h1>
       </div>
+
       <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
         <motion.div className="w-full max-w-md" variants={itemVariants}>
-
           <h2 className="text-3xl font-bold tracking-tight mb-8">Create Account</h2>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="bg-red-950/50 border-l-4 border-[var(--color-accent)] text-red-200 px-4 py-4 mb-8 font-medium"
-            >
-              {error}
-            </motion.div>
-          )}
+          <AuthErrorBanner error={error} />
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <motion.div className="space-y-3" variants={itemVariants}>
-              <label htmlFor="usernameInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">Username</label>
-              <input
-                id="usernameInput"
-                type="text"
-                required
-                className="custom-input w-full px-5 py-4 rounded-none"
-                placeholder="johndoe"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isLoading}
-              />
-            </motion.div>
+            <AuthInput
+              id="usernameInput"
+              label="Username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="johndoe"
+              disabled={isLoading}
+              variants={itemVariants}
+            />
 
-            <motion.div className="space-y-3" variants={itemVariants}>
-              <label htmlFor="emailSignupInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">Email Address</label>
-              <input
-                id="emailSignupInput"
-                type="email"
-                required
-                className="custom-input w-full px-5 py-4 rounded-none"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </motion.div>
+            <AuthInput
+              id="emailSignupInput"
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={isLoading}
+              variants={itemVariants}
+            />
 
-            <motion.div className="space-y-3" variants={itemVariants}>
-              <label htmlFor="passwordSignupInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">Password</label>
-              <div className="relative">
-                <input
-                  id="passwordSignupInput"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="custom-input w-full px-5 py-4 pr-12 rounded-none"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-                <div 
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-white cursor-pointer transition-colors"
-                  onMouseEnter={() => setShowPassword(true)}
-                  onMouseLeave={() => setShowPassword(false)}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </div>
-              </div>
-            </motion.div>
+            <AuthInput
+              id="passwordSignupInput"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              disabled={isLoading}
+              variants={itemVariants}
+              allowPasswordToggle={true}
+            />
 
             <motion.div variants={itemVariants} className="pt-4">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="gradient-btn w-full py-5 flex items-center justify-center gap-3 group disabled:opacity-70 disabled:cursor-not-allowed"
+                className="gradient-btn w-full py-5 flex items-center justify-center gap-3 group disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <>

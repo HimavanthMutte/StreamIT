@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AuthInput from '../components/Auth/AuthInput';
+import AuthErrorBanner from '../components/Auth/AuthErrorBanner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -90,56 +92,43 @@ const Login = () => {
 
       <div className="flex-1 flex items-center justify-center p-8 lg:p-16">
         <motion.div className="w-full max-w-md" variants={itemVariants}>
-
           <h2 className="text-3xl font-bold tracking-tight mb-8">Welcome Back</h2>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="bg-red-950/50 border-l-4 border-[var(--color-accent)] text-red-200 px-4 py-4 mb-8 font-medium"
-            >
-              {error}
-            </motion.div>
-          )}
+          <AuthErrorBanner error={error} />
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <motion.div className="space-y-3" variants={itemVariants}>
-              <label htmlFor="emailInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider block">Email Address</label>
-              <input
-                id="emailInput"
-                type="email"
-                required
-                className="custom-input w-full px-5 py-4 rounded-none"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </motion.div>
+            <AuthInput
+              id="emailInput"
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={isLoading}
+              variants={itemVariants}
+            />
 
-            <motion.div className="space-y-3" variants={itemVariants}>
-              <div className="flex justify-between items-center">
-                <label htmlFor="passwordInput" className="text-sm font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Password</label>
-                <a href="#" className="text-xs font-bold text-[var(--color-accent)] hover:text-white transition-colors uppercase tracking-wider">Forgot?</a>
-              </div>
-              <input
-                id="passwordInput"
-                type="password"
-                required
-                className="custom-input w-full px-5 py-4 rounded-none"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
-            </motion.div>
+            <AuthInput
+              id="passwordInput"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              disabled={isLoading}
+              variants={itemVariants}
+              extraLabelRight={
+                <a href="#" className="text-xs font-bold text-[var(--color-accent)] hover:text-white transition-colors uppercase tracking-wider">
+                  Forgot?
+                </a>
+              }
+            />
 
             <motion.div variants={itemVariants} className="pt-4">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="gradient-btn w-full py-5 flex items-center justify-center gap-3 group disabled:opacity-70 disabled:cursor-not-allowed"
+                className="gradient-btn w-full py-5 flex items-center justify-center gap-3 group disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <>

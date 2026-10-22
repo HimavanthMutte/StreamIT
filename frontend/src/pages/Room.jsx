@@ -1,36 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, User, LogOut, Crown, X, UploadCloud, Loader2 } from 'lucide-react';
 import io from 'socket.io-client';
 import CustomVideoPlayer from '../components/VideoPlayer';
-
-const MessageList = memo(({ messages, userId }) => {
-  return (
-    <>
-      {messages.length === 0 && (
-        <p className="text-center text-[var(--color-text-muted)] font-medium mt-10 uppercase text-xs tracking-wider">No messages</p>
-      )}
-      {messages.map((msg, index) => {
-        const isMe = msg.sender?._id === userId || msg.sender === userId;
-        const msgUsername = msg.sender?.username || 'Unknown';
-        return (
-          <div key={index} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-            <span className="text-[10px] font-bold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">{isMe ? 'YOU' : msgUsername}</span>
-            <div className={`px-4 py-3 max-w-[85%] ${isMe ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-bg-base)] border-2 border-[var(--color-surface-border)]'}`}>
-              <p className="font-medium leading-snug text-sm">{msg.text}</p>
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
-});
+import RoomHeader from '../components/Room/RoomHeader';
+import VideoUploadArea from '../components/Room/VideoUploadArea';
+import ChatSidebar from '../components/Room/ChatSidebar';
 
 let socket;
 
 const Room = () => {
   const { roomCode } = useParams();
   const navigate = useNavigate();
+
+  // Chat & room state
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [participants, setParticipants] = useState([]);
@@ -38,13 +20,15 @@ const Room = () => {
   const [typingUsers, setTypingUsers] = useState([]);
   const [hostUsername, setHostUsername] = useState('');
 
+  // Video streaming & upload state
   const [videoUrl, setVideoUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
 
-
+  // Layout resize state
   const [chatWidth, setChatWidth] = useState(320);
+  const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
 
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -53,14 +37,14 @@ const Room = () => {
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
 
-  const [isLg, setIsLg] = useState(window.innerWidth >= 1024);
-
+  // Handle responsive resize
   useEffect(() => {
     const handleResize = () => setIsLg(window.innerWidth >= 1024);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Initialize socket & fetch room data
   useEffect(() => {
     if (!userId) {
       navigate('/login');
@@ -76,13 +60,10 @@ const Room = () => {
         if (data.room) {
           setHostUsername(data.room.creator?.username || '');
           if (data.room.videoUrl) {
-            // Fetch presigned GET URL for streaming with range support
             fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
               .then(res => res.json())
               .then(vdata => {
-                if (vdata.url) {
-                  setVideoUrl(vdata.url);
-                }
+                if (vdata.url) setVideoUrl(vdata.url);
               })
               .catch(err => console.error('Error fetching presigned streaming URL', err));
           }
@@ -107,12 +88,10 @@ const Room = () => {
         }
         setParticipants(initial);
       })
-      .catch(err => console.error(err));
+      .catch(err => console.error('Error fetching room messages:', err));
 
     socket.on('user-joined', ({ username: joinedUser }) => {
-      setParticipants(prev =>
-        prev.includes(joinedUser) ? prev : [...prev, joinedUser]
-      );
+      setParticipants(prev => (prev.includes(joinedUser) ? prev : [...prev, joinedUser]));
       setOfflineUsers(prev => prev.filter(u => u !== joinedUser));
     });
 
@@ -166,6 +145,7 @@ const Room = () => {
     };
   }, [roomCode, userId, username, navigate]);
 
+  // Scroll chat to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -244,12 +224,12 @@ const Room = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts })
       });
-      const { videoUrl: rawUrl } = await completeRes.json();
-      // Fetch a presigned GET URL for streaming (range requests)
+      await completeRes.json();
+
       const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
       const { url: presignedUrl } = await streamRes.json();
       setVideoUrl(presignedUrl);
-      socket.emit('video-uploaded', { roomCode }); // participants will each fetch their own streaming URL
+      socket.emit('video-uploaded', { roomCode });
       setIsUploading(false);
       setUploadProgress(100);
       setUploadError('');
@@ -289,7 +269,7 @@ const Room = () => {
         body: JSON.stringify({ roomCode, userId })
       });
     } catch (err) {
-      console.error(err);
+      console.error('Error leaving room:', err);
     }
 
     navigate('/home');
@@ -301,12 +281,6 @@ const Room = () => {
         socket.emit('kick-user', { roomCode, targetUsername });
       }
     }
-  };
-
-  const handleMouseDown = (e) => {
-    isDraggingRef.current = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = useCallback((e) => {
@@ -323,6 +297,12 @@ const Room = () => {
     document.removeEventListener('mouseup', handleMouseUp);
   }, [handleMouseMove]);
 
+  const handleMouseDown = () => {
+    isDraggingRef.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const othersTyping = typingUsers.filter(u => u !== username);
   const hostUser = participants.find(p => p === hostUsername);
   const otherParticipants = participants.filter(p => p !== hostUsername);
@@ -331,71 +311,33 @@ const Room = () => {
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] w-full bg-[var(--color-bg-base)] text-[var(--color-text-main)] overflow-y-auto no-scrollbar lg:overflow-hidden">
       <div className="flex-1 flex flex-col p-0 lg:p-6 border-b-2 lg:border-b-0 relative bg-black min-w-0 lg:h-full overflow-y-visible lg:overflow-y-auto no-scrollbar lg:custom-scrollbar">
-        <div className="relative w-full p-4 lg:p-0 flex items-center justify-between mb-0 lg:mb-4 z-30 pointer-events-auto shrink-0">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/home')}
-              className="flex lg:hidden items-center gap-2 text-[var(--color-text-muted)] font-bold hover:text-white transition-colors cursor-pointer"
-            >
-              <ArrowLeft size={18} /> Home
-            </button>
-            <h2 className="hidden lg:block text-2xl font-black uppercase tracking-tighter">ROOM: <span className="text-[var(--color-accent)]">{roomCode}</span></h2>
-          </div>
-          <button
-            onClick={handleLeaveRoom}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--color-accent)] text-[var(--color-accent)] font-bold uppercase text-sm hover:bg-[var(--color-accent)] hover:text-white transition-all cursor-pointer"
-          >
-            <LogOut size={16} /> Leave Room
-          </button>
-        </div>
+        <RoomHeader
+          roomCode={roomCode}
+          onNavigateHome={() => navigate('/home')}
+          onLeaveRoom={handleLeaveRoom}
+        />
 
         <div className="flex-1 min-h-0 w-full flex items-center justify-center relative">
           <div className="bg-black lg:border-2 border-[var(--color-surface-border)] w-full h-full relative overflow-hidden shrink-0 flex items-center justify-center">
             {videoUrl ? (
-              <CustomVideoPlayer src={videoUrl} socket={socket} roomCode={roomCode} isHost={username === hostUsername} />
-            ) : username === hostUsername ? (
-              <div className="flex flex-col items-center justify-center text-[var(--color-text-main)] w-full max-w-md p-6 border-2 border-dashed border-[var(--color-surface-border)] bg-[var(--color-surface)]">
-                <UploadCloud size={48} className="mb-4 text-[var(--color-accent)]" />
-                <h3 className="text-lg font-bold mb-2 uppercase tracking-wide">Upload Video</h3>
-                <p className="text-xs text-[var(--color-text-muted)] text-center mb-6">Select a video file to play for the room.</p>
-
-                {isUploading ? (
-                  <div className="w-full flex flex-col items-center">
-                    <Loader2 size={24} className="animate-spin text-[var(--color-accent)] mb-2" />
-                    <div className="w-full bg-[var(--color-bg-base)] h-2 border border-[var(--color-surface-border)] mt-2">
-                      <div className="bg-[var(--color-accent)] h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                    </div>
-                    <span className="text-xs font-bold mt-2 tracking-wider">
-                      {uploadProgress === 100 ? 'PROCESSING VIDEO...' : `${uploadProgress}% UPLOADED`}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="upload-controls">
-                    <label className="gradient-btn px-6 py-2 cursor-pointer uppercase text-xs font-bold tracking-wider">
-                      Select File
-                      <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
-                    </label>
-                    {uploadError && (
-                      <div className="w-full flex flex-col items-center mt-2">
-                        <p className="text-sm text-[var(--color-warning)] mb-2">{uploadError}</p>
-                        <button onClick={handleRetry} className="gradient-btn px-4 py-2">
-                          Retry
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <CustomVideoPlayer
+                src={videoUrl}
+                socket={socket}
+                roomCode={roomCode}
+                isHost={username === hostUsername}
+              />
             ) : (
-              <div className="flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
-                <Loader2 size={40} className="animate-spin mb-4 opacity-50" />
-                <h3 className="text-lg font-bold uppercase tracking-widest text-[var(--color-text-main)] mb-2">Waiting for Host</h3>
-                <p className="text-sm font-medium">The host is uploading a video. Please wait...</p>
-              </div>
+              <VideoUploadArea
+                isHost={username === hostUsername}
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+                uploadError={uploadError}
+                onFileUpload={handleFileUpload}
+                onRetry={handleRetry}
+              />
             )}
           </div>
         </div>
-
       </div>
 
       <div
@@ -403,81 +345,22 @@ const Room = () => {
         onMouseDown={handleMouseDown}
       />
 
-      <div
-        className="flex flex-col bg-[var(--color-surface)] min-h-[400px] h-[500px] lg:h-full shrink-0 border-l-2 border-[var(--color-surface-border)] relative"
-        style={{ width: isLg ? chatWidth : '100%', minWidth: isLg ? '350px' : '100%' }}
-      >
-        <div className="p-4 border-b-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">
-          <h3 className="font-bold uppercase text-xs text-[var(--color-text-muted)] mb-3 tracking-widest">Participants ({participants.length})</h3>
-          <div className="flex gap-4 overflow-x-auto pt-4 pb-2 px-2">
-            {displayParticipants.map((p, idx) => {
-              const isHost = p === hostUsername;
-              const isOffline = offlineUsers.includes(p);
-              const displayName = p.length > 8 ? p.substring(0, 8) + '...' : p;
-
-              return (
-                <div
-                  key={idx}
-                  className={`flex flex-col items-center gap-1 min-w-[60px] transition-opacity duration-300 ${isOffline ? 'opacity-40 grayscale' : 'opacity-100'} group/avatar`}
-                  title={isOffline ? `${p} (Offline)` : p}
-                >
-                  <div className={`relative w-10 h-10 bg-[var(--color-bg-base)] border-2 ${isHost ? 'border-yellow-500' : 'border-[var(--color-accent)]'} flex items-center justify-center text-[var(--color-text-main)]`}>
-                    <User size={18} className={isHost ? 'text-yellow-500' : 'text-[var(--color-accent)]'} />
-                    {isHost && (
-                      <div className="absolute -top-3 -right-3 bg-[var(--color-bg-base)] rounded-full p-1 border-2 border-yellow-500" title="Host">
-                        <Crown size={10} className="text-yellow-500" />
-                      </div>
-                    )}
-                    {username === hostUsername && !isHost && (
-                      <button
-                        onClick={() => handleKickUser(p)}
-                        className="absolute -top-3 -right-3 bg-[var(--color-bg-base)] rounded-full p-1 border-2 border-[var(--color-accent)] hover:bg-[var(--color-accent)] transition-colors opacity-0 group-hover/avatar:opacity-100 hidden md:block cursor-pointer"
-                        title="Kick User"
-                      >
-                        <X size={10} className="text-[var(--color-accent)] hover:text-white" />
-                      </button>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-bold uppercase truncate w-full text-center leading-tight">
-                    {displayName}
-                  </span>
-                  {isOffline && (
-                    <span className="text-[8px] font-bold text-[var(--color-warning)] uppercase mt-0.5 tracking-wide">Offline</span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar" style={{ transform: 'translateZ(0)' }}>
-          <MessageList messages={messages} userId={userId} />
-          {othersTyping.length > 0 && (
-            <div className="flex flex-col items-start animate-pulse">
-              <span className="text-[10px] font-bold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">{othersTyping.join(', ')} {othersTyping.length === 1 ? 'is' : 'are'} typing</span>
-              <div className="px-4 py-3 bg-[var(--color-bg-base)] border-2 border-[var(--color-surface-border)]">
-                <p className="font-bold tracking-widest text-[var(--color-text-muted)]">...</p>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <div className="p-4 border-t-2 border-[var(--color-surface-border)] bg-[var(--color-surface-hover)]">
-          <form onSubmit={handleSendMessage} className="flex gap-3 items-stretch">
-            <input
-              type="text"
-              value={messageText}
-              onChange={handleTyping}
-              placeholder="Send a message..."
-              className="custom-input flex-1 px-4 py-3 rounded-none text-sm"
-            />
-            <button type="submit" className="gradient-btn px-6 flex items-center justify-center cursor-pointer h-auto">
-              <Send size={18} />
-            </button>
-          </form>
-        </div>
-      </div>
+      <ChatSidebar
+        chatWidth={chatWidth}
+        isLg={isLg}
+        participants={displayParticipants}
+        hostUsername={hostUsername}
+        currentUsername={username}
+        offlineUsers={offlineUsers}
+        onKickUser={handleKickUser}
+        messages={messages}
+        userId={userId}
+        othersTyping={othersTyping}
+        messagesEndRef={messagesEndRef}
+        messageText={messageText}
+        onTyping={handleTyping}
+        onSendMessage={handleSendMessage}
+      />
     </div>
   );
 };

@@ -57,6 +57,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const controlsTimeoutRef = useRef(null); // FIX: use ref so clearTimeout works across renders
+const pendingSyncRef = useRef(null); // Holds sync data if received before video is ready
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPlayBlocked, setIsPlayBlocked] = useState(false); // true when browser blocks autoplay
@@ -160,6 +161,18 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const handleLoadedData = () => {
     if (videoRef.current) {
       setDuration(formatTime(videoRef.current.duration));
+      // Apply any pending sync that arrived before video was ready
+      if (pendingSyncRef.current) {
+        const { time, isPlaying } = pendingSyncRef.current;
+        const diff = Math.abs(videoRef.current.currentTime - time);
+        if (diff > 1) videoRef.current.currentTime = time;
+        if (isPlaying) {
+          safePlay(videoRef.current);
+        } else {
+          videoRef.current.pause();
+        }
+        pendingSyncRef.current = null;
+      }
     }
   };
 
@@ -237,11 +250,27 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
       }
     };
 
+    const handleSyncTimestamp = ({ time, isPlaying }) => {
+      const video = videoRef.current;
+      if (!video) return;
+      const diff = Math.abs(video.currentTime - time);
+      if (diff > 1) {
+        video.currentTime = time;
+      }
+      if (isPlaying) {
+        safePlay(video);
+      } else {
+        video.pause();
+      }
+    };
+
+    socket.on('sync-timestamp', handleSyncTimestamp);
     socket.on('video-play', handleVideoPlay);
     socket.on('video-pause', handleVideoPause);
     socket.on('video-seek', handleVideoSeek);
 
     return () => {
+      socket.off('sync-timestamp', handleSyncTimestamp);
       socket.off('video-play', handleVideoPlay);
       socket.off('video-pause', handleVideoPause);
       socket.off('video-seek', handleVideoSeek);

@@ -57,7 +57,7 @@ const CustomVideoPlayer = ({ src, poster, socket, roomCode, isHost }) => {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const controlsTimeoutRef = useRef(null); // FIX: use ref so clearTimeout works across renders
-const pendingSyncRef = useRef(null); // Holds sync data if received before video is ready
+  const pendingSyncRef = useRef(null); // Holds sync data if received before video is ready
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPlayBlocked, setIsPlayBlocked] = useState(false); // true when browser blocks autoplay

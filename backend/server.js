@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
           }
           // Emit to all participants (including host) the current playback state
           io.to(roomCode).emit('sync-timestamp', { time: current, isPlaying: state.isPlaying });
-        }, 5000)
+        }, 5000),
       };
     } else {
       // Ensure host tracking persists

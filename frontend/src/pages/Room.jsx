@@ -247,14 +247,11 @@ const Room = () => {
 
       const parts = await Promise.all(uploadPromises);
 
-      const completeRes = await fetch(
-        `/api/rooms/${roomCode}/upload/complete`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, uploadId, parts }),
-        }
-      );
+      const completeRes = await fetch(`/api/rooms/${roomCode}/upload/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, uploadId, parts }),
+      });
       await completeRes.json();
 
       const streamRes = await fetch(`/api/rooms/${roomCode}/video-url`);

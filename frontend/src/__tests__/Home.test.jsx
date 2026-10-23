@@ -59,9 +59,7 @@ describe('Home Component', () => {
     renderHome();
 
     // Check fetch was called for joined rooms
-    expect(global.fetch).toHaveBeenCalledWith(
-      `/api/rooms/joined?userId=${mockUserId}`
-    );
+    expect(global.fetch).toHaveBeenCalledWith(`/api/rooms/joined?userId=${mockUserId}`);
 
     // Header verification
     expect(screen.getByRole('heading', { level: 1, name: /stream it\./i })).toBeInTheDocument();

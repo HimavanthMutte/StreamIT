@@ -51,7 +51,7 @@ const Room = () => {
     }
 
     try {
-      await fetch('http://localhost:5000/api/rooms/leave', {
+      await fetch('/api/rooms/leave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode, userId }),
@@ -70,16 +70,16 @@ const Room = () => {
       return;
     }
 
-    socket = io('http://localhost:5000');
+    socket = io();
     socket.emit('join-room', { roomCode, username });
 
-    fetch(`http://localhost:5000/api/rooms/${roomCode}/messages`)
+    fetch(`/api/rooms/${roomCode}/messages`)
       .then((res) => res.json())
       .then((data) => {
         if (data.room) {
           setHostUsername(data.room.creator?.username || '');
           if (data.room.videoUrl) {
-            fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
+            fetch(`/api/rooms/${roomCode}/video-url`)
               .then((res) => res.json())
               .then((vdata) => {
                 if (vdata.url) setVideoUrl(vdata.url);
@@ -147,7 +147,7 @@ const Room = () => {
     });
 
     socket.on('video-uploaded', () => {
-      fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`)
+      fetch(`/api/rooms/${roomCode}/video-url`)
         .then((res) => res.json())
         .then((vdata) => {
           if (vdata.url) setVideoUrl(vdata.url);
@@ -201,7 +201,7 @@ const Room = () => {
     setUploadError('');
 
     try {
-      const startRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/start`, {
+      const startRes = await fetch(`/api/rooms/${roomCode}/upload/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName: file.name, fileType: file.type }),
@@ -211,7 +211,7 @@ const Room = () => {
       const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
       const numChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-      const presignRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/upload/presign`, {
+      const presignRes = await fetch(`/api/rooms/${roomCode}/upload/presign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, uploadId, parts: numChunks }),
@@ -248,7 +248,7 @@ const Room = () => {
       const parts = await Promise.all(uploadPromises);
 
       const completeRes = await fetch(
-        `http://localhost:5000/api/rooms/${roomCode}/upload/complete`,
+        `/api/rooms/${roomCode}/upload/complete`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -257,7 +257,7 @@ const Room = () => {
       );
       await completeRes.json();
 
-      const streamRes = await fetch(`http://localhost:5000/api/rooms/${roomCode}/video-url`);
+      const streamRes = await fetch(`/api/rooms/${roomCode}/video-url`);
       const { url: presignedUrl } = await streamRes.json();
       setVideoUrl(presignedUrl);
       socket.emit('video-uploaded', { roomCode });

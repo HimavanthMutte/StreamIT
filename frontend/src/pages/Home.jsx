@@ -18,7 +18,7 @@ const Home = () => {
   const username = localStorage.getItem('username');
 
   const fetchJoinedRooms = React.useCallback(() => {
-    fetch(`http://localhost:5000/api/rooms/joined?userId=${userId}`)
+    fetch(`/api/rooms/joined?userId=${userId}`)
       .then((res) => res.json())
       .then((data) => setJoinedRooms(Array.isArray(data) ? data : []))
       .catch((err) => console.error('Error fetching rooms:', err));
@@ -38,7 +38,7 @@ const Home = () => {
     if (!createCode.trim()) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/rooms/create', {
+      const res = await fetch('/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode: createCode, userId }),
@@ -60,7 +60,7 @@ const Home = () => {
     if (!joinCode.trim()) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/rooms/join', {
+      const res = await fetch('/api/rooms/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode: joinCode, userId }),

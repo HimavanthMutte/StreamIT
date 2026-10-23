@@ -60,7 +60,7 @@ describe('Home Component', () => {
 
     // Check fetch was called for joined rooms
     expect(global.fetch).toHaveBeenCalledWith(
-      `http://localhost:5000/api/rooms/joined?userId=${mockUserId}`
+      `/api/rooms/joined?userId=${mockUserId}`
     );
 
     // Header verification
@@ -159,7 +159,7 @@ describe('Home Component', () => {
 
     await user.click(createBtn);
 
-    expect(global.fetch).toHaveBeenCalledWith('http://localhost:5000/api/rooms/create', {
+    expect(global.fetch).toHaveBeenCalledWith('/api/rooms/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode: 'MARVEL-NIGHT', userId: mockUserId }),
@@ -253,7 +253,7 @@ describe('Home Component', () => {
 
     await user.click(joinBtn);
 
-    expect(global.fetch).toHaveBeenCalledWith('http://localhost:5000/api/rooms/join', {
+    expect(global.fetch).toHaveBeenCalledWith('/api/rooms/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode: 'PARTY-101', userId: mockUserId }),

@@ -100,7 +100,7 @@ describe('Login Component', () => {
     await user.click(submitBtn);
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith('http://localhost:5000/api/auth/login', {
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

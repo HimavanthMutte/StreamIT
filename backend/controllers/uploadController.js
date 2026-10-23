@@ -89,7 +89,7 @@ exports.completeMultipartUpload = async (req, res) => {
     const videoUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
     // Update the room with the video URL
-    const room = await Room.findOneAndUpdate({ roomCode }, { videoUrl }, { new: true });
+    const room = await Room.findOneAndUpdate({ roomCode }, { videoUrl }, { returnDocument: 'after' });
 
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });

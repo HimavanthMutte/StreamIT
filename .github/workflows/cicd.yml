@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -150,3 +150,58 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/streamit-frontend:latest
             ${{ secrets.DOCKER_USERNAME }}/streamit-frontend:${{ github.sha }}
+  
+  deploy-to-ec2:
+    name: Deploy to AWS EC2
+    runs-on: ubuntu-latest
+    needs: [docker-ci]
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy containers on EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+
+            echo "Creating Docker network if needed..."
+            docker network create streamit-network || true
+
+            echo "Pulling latest images..."
+            docker pull ${{ secrets.DOCKER_USERNAME }}/streamit-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/streamit-frontend:latest
+
+            echo "Removing old containers..."
+            docker rm -f streamit-frontend streamit-backend || true
+
+            echo "Starting backend..."
+            docker run -d \
+              --name streamit-backend \
+              --restart unless-stopped \
+              --network streamit-network \
+              --network-alias streamit-backend \
+              --env-file "$HOME/streamit-backend.env" \
+              -p 5000:5000 \
+              ${{ secrets.DOCKER_USERNAME }}/streamit-backend:latest
+
+            echo "Starting frontend..."
+            docker run -d \
+              --name streamit-frontend \
+              --restart unless-stopped \
+              --network streamit-network \
+              -p 80:80 \
+              ${{ secrets.DOCKER_USERNAME }}/streamit-frontend:latest
+
+            echo "Waiting for containers to initialize..."
+            sleep 5
+
+            docker ps --filter name=streamit-backend
+            docker ps --filter name=streamit-frontend
+
+            echo "Deployment commands completed."
+
